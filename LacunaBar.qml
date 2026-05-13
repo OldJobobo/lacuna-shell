@@ -17,6 +17,10 @@ Scope {
     id: compactState
   }
 
+  SystemMonitor {
+    id: systemMonitor
+  }
+
   Variants {
     model: Quickshell.screens
 
@@ -112,18 +116,14 @@ Scope {
             leadingImageSize: panel.dense ? 10 : 12
           }
 
-          ScriptPill {
+          MprisPill {
             tooltipHost: tooltips
             compact: panel.dense
-            script: "scripts/mpris-status.sh"
-            interval: 3000
             moduleAccent: theme.soft
             foreground: theme.foreground
             background: theme.background
             maxTextLength: panel.narrow ? 18 : panel.dense ? 22 : 34
             sweepOnPlaying: true
-            onTriggered: commands.run("playerctl play-pause")
-            onSecondaryTriggered: commands.run("playerctl next")
           }
         }
 
@@ -152,11 +152,9 @@ Scope {
             tooltipHost: tooltips
           }
 
-          ScriptPill {
+          ClockPill {
             tooltipHost: tooltips
             compact: panel.dense
-            script: "scripts/clock-status.sh"
-            interval: 30000
             moduleAccent: theme.color("color6")
             foreground: theme.foreground
             background: theme.background
@@ -234,24 +232,21 @@ Scope {
             tooltipHost: tooltips
           }
 
-          ScriptPill {
-            visible: panel.narrow && cssClass !== "hidden" && displayText.length > 0
+          ClockPill {
+            visible: panel.narrow
             tooltipHost: tooltips
             compact: panel.dense
-            script: "scripts/clock-status.sh --short"
-            interval: 30000
+            shortMode: true
             moduleAccent: theme.color("color6")
             foreground: theme.foreground
             background: theme.background
-            maxTextLength: 8
           }
 
-          ScriptPill {
-            visible: !panel.narrow && cssClass !== "hidden" && displayText.length > 0
+          ThemePill {
+            visible: !panel.narrow && themeService.themeTitle.length > 0
             tooltipHost: tooltips
             compact: panel.dense
-            script: "scripts/theme-status.sh"
-            interval: 3000
+            themeService: theme
             moduleAccent: theme.soft
             foreground: theme.foreground
             background: theme.background
@@ -260,12 +255,10 @@ Scope {
             onSecondaryTriggered: commands.run("current=\"$(omarchy theme current)\"; next=\"$(omarchy theme list | grep -Fvx \"$current\" | shuf -n 1)\"; [ -n \"$next\" ] && omarchy theme set \"$next\"")
           }
 
-          ScriptPill {
-            visible: !panel.narrow && cssClass !== "hidden" && displayText.length > 0
+          WallpaperPill {
+            visible: !panel.narrow && text.length > 0
             tooltipHost: tooltips
             compact: panel.dense
-            script: "scripts/wallpaper-status.sh"
-            interval: 5000
             moduleAccent: theme.color("color11")
             foreground: theme.foreground
             background: theme.background
@@ -328,16 +321,14 @@ Scope {
                 onTriggered: commands.run("omarchy menu power")
               }
 
-              ScriptPill {
+              BatteryPill {
                 tooltipHost: tooltips
                 compact: panel.dense
-                script: "scripts/battery-status.sh"
-                interval: 5000
                 moduleAccent: theme.color("color6")
                 alertAccent: theme.color("color9")
                 foreground: theme.foreground
                 background: theme.background
-                onTriggered: commands.run("omarchy menu power")
+                commandRunner: commands
               }
             }
 
@@ -346,19 +337,13 @@ Scope {
               anchors.verticalCenter: parent.verticalCenter
               spacing: panel.narrow ? 2 : 4
 
-              ScriptPill {
+              AudioPill {
                 tooltipHost: tooltips
                 compact: panel.dense
-                script: "scripts/audio-status.sh"
-                interval: 2000
                 moduleAccent: theme.color("color13")
                 foreground: theme.foreground
                 background: theme.background
-                onTriggered: commands.run("hyprctl dispatch 'hl.dsp.exec_cmd([[omarchy launch audio]])'")
-                onSecondaryTriggered: commands.run("pamixer -t")
-                onScrolled: function(delta) {
-                  commands.run(delta > 0 ? "pamixer -i 5" : "pamixer -d 5")
-                }
+                commandRunner: commands
               }
 
               SystemStats {
@@ -370,15 +355,15 @@ Scope {
                 cpuAccent: theme.color("color14")
                 compact: panel.dense
                 commandRunner: commands
+                monitor: systemMonitor
                 tooltipHost: tooltips
               }
 
-              ScriptPill {
-                visible: !panel.narrow && cssClass !== "hidden" && displayText.length > 0
+              TemperaturePill {
+                visible: !panel.narrow && text.length > 0
                 tooltipHost: tooltips
                 compact: panel.dense
-                script: "scripts/temperature-status.sh"
-                interval: 5000
+                monitor: systemMonitor
                 moduleAccent: theme.color("color11")
                 foreground: theme.foreground
                 background: theme.background
@@ -387,15 +372,13 @@ Scope {
             }
           }
 
-          ScriptPill {
+          CompactPill {
             tooltipHost: tooltips
             compact: panel.dense
-            script: "scripts/compact-status.sh"
-            interval: 1000
+            stateController: compactState
             moduleAccent: theme.color("color9")
             foreground: theme.foreground
             background: theme.background
-            onTriggered: compactState.toggle()
           }
         }
 
@@ -426,15 +409,13 @@ Scope {
             tooltipHost: tooltips
           }
 
-          ScriptPill {
+          ClockPill {
             tooltipHost: tooltips
             compact: compactState.compact
-            script: "scripts/clock-status.sh --short"
-            interval: 30000
+            shortMode: true
             moduleAccent: theme.color("color6")
             foreground: theme.foreground
             background: theme.background
-            maxTextLength: 8
           }
 
           ScriptPill {
@@ -532,18 +513,14 @@ Scope {
               }
             }
 
-            ScriptPill {
+            MprisPill {
               tooltipHost: tooltips
               compact: compactState.compact
-              script: "scripts/mpris-status.sh"
-              interval: 3000
               moduleAccent: theme.soft
               foreground: theme.foreground
               background: theme.background
               maxTextLength: 20
               sweepOnPlaying: true
-              onTriggered: commands.run("playerctl play-pause")
-              onSecondaryTriggered: commands.run("playerctl next")
             }
           }
         }
@@ -609,42 +586,32 @@ Scope {
             onTriggered: commands.run("omarchy menu power")
           }
 
-          ScriptPill {
+          BatteryPill {
             tooltipHost: tooltips
             compact: compactState.compact
-            script: "scripts/battery-status.sh"
-            interval: 5000
             moduleAccent: theme.color("color6")
             alertAccent: theme.color("color9")
             foreground: theme.foreground
             background: theme.background
-            onTriggered: commands.run("omarchy menu power")
+            commandRunner: commands
           }
 
-          ScriptPill {
+          AudioPill {
             tooltipHost: tooltips
             compact: compactState.compact
-            script: "scripts/audio-status.sh"
-            interval: 2000
             moduleAccent: theme.color("color13")
             foreground: theme.foreground
             background: theme.background
-            onTriggered: commands.run("hyprctl dispatch 'hl.dsp.exec_cmd([[omarchy launch audio]])'")
-            onSecondaryTriggered: commands.run("pamixer -t")
-            onScrolled: function(delta) {
-              commands.run(delta > 0 ? "pamixer -i 5" : "pamixer -d 5")
-            }
+            commandRunner: commands
           }
 
-          ScriptPill {
+          CompactPill {
             tooltipHost: tooltips
             compact: compactState.compact
-            script: "scripts/compact-status.sh"
-            interval: 1000
+            stateController: compactState
             moduleAccent: theme.color("color9")
             foreground: theme.foreground
             background: theme.background
-            onTriggered: compactState.toggle()
           }
         }
 
@@ -729,14 +696,14 @@ Scope {
             cpuAccent: theme.color("color14")
             compact: compactState.compact
             commandRunner: commands
+            monitor: systemMonitor
             tooltipHost: bottomTooltips
           }
 
-          ScriptPill {
+          TemperaturePill {
             tooltipHost: bottomTooltips
             compact: compactState.compact
-            script: "scripts/temperature-status.sh"
-            interval: 5000
+            monitor: systemMonitor
             moduleAccent: theme.color("color11")
             foreground: theme.foreground
             background: theme.background
@@ -751,11 +718,10 @@ Scope {
           anchors.verticalCenter: parent.verticalCenter
           spacing: compactState.compact ? 3 : 6
 
-          ScriptPill {
+          ThemePill {
             tooltipHost: bottomTooltips
             compact: compactState.compact
-            script: "scripts/theme-status.sh"
-            interval: 3000
+            themeService: theme
             moduleAccent: theme.soft
             foreground: theme.foreground
             background: theme.background
@@ -764,11 +730,9 @@ Scope {
             onSecondaryTriggered: commands.run("current=\"$(omarchy theme current)\"; next=\"$(omarchy theme list | grep -Fvx \"$current\" | shuf -n 1)\"; [ -n \"$next\" ] && omarchy theme set \"$next\"")
           }
 
-          ScriptPill {
+          WallpaperPill {
             tooltipHost: bottomTooltips
             compact: compactState.compact
-            script: "scripts/wallpaper-status.sh"
-            interval: 5000
             moduleAccent: theme.color("color11")
             foreground: theme.foreground
             background: theme.background

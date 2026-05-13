@@ -6,7 +6,10 @@ Item {
   id: root
 
   readonly property string colorsPath: Quickshell.env("XDG_CONFIG_HOME") ? Quickshell.env("XDG_CONFIG_HOME") + "/omarchy/current/theme/colors.toml" : Quickshell.env("HOME") + "/.config/omarchy/current/theme/colors.toml"
+  readonly property string themeNamePath: Quickshell.env("XDG_CONFIG_HOME") ? Quickshell.env("XDG_CONFIG_HOME") + "/omarchy/current/theme.name" : Quickshell.env("HOME") + "/.config/omarchy/current/theme.name"
   property var palette: ({})
+  property string themeName: ""
+  property string themeTitle: formatTitle(themeName)
   property color foreground: color("foreground")
   property color background: color("background")
   property color panel: withAlpha(background, 0.84)
@@ -20,6 +23,10 @@ Item {
   }
 
   function color(name) {
+    return rawColor(name)
+  }
+
+  function rawColor(name) {
     return palette[name] || fallback(name)
   }
 
@@ -55,6 +62,17 @@ Item {
     palette = next
   }
 
+  function loadThemeName(raw) {
+    themeName = String(raw || "").trim()
+  }
+
+  function formatTitle(value) {
+    return String(value || "")
+      .replace(/[-_]/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, function(letter) { return letter.toUpperCase() })
+  }
+
   FileView {
     id: themeFile
 
@@ -68,18 +86,25 @@ Item {
     onLoadFailed: themeRetry.restart()
   }
 
+  FileView {
+    id: themeNameFile
+
+    path: root.themeNamePath
+    watchChanges: true
+    printErrors: false
+    onLoaded: root.loadThemeName(text())
+    onFileChanged: reload()
+    onLoadFailed: themeRetry.restart()
+  }
+
   Timer {
     id: themeRetry
 
     interval: 500
     repeat: false
-    onTriggered: themeFile.reload()
-  }
-
-  Timer {
-    interval: 2000
-    running: true
-    repeat: true
-    onTriggered: themeFile.reload()
+    onTriggered: {
+      themeFile.reload()
+      themeNameFile.reload()
+    }
   }
 }
