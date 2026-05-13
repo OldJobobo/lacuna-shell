@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+SESSIONS_DIR = Path.home() / ".codex" / "sessions"
+
+
+def iter_session_files():
+    if not SESSIONS_DIR.exists():
+        return []
+    paths = []
+    for path in SESSIONS_DIR.rglob("*.jsonl"):
+        try:
+            paths.append((path.stat().st_mtime, path))
+        except OSError:
+            continue
+    return [path for _, path in sorted(paths, reverse=True)]
+
+
+def parse_latest_token_count():
+    for path in iter_session_files():
+        latest = None
+        try:
+            with path.open("r", encoding="utf-8") as handle:
+                for raw_line in handle:
+                    raw_line = raw_line.strip()
+                    if not raw_line:
+                        continue
+
+                    try:
+                        event = json.loads(raw_line)
+                    except json.JSONDecodeError:
+                        continue
+
+                    if event.get("type") != "event_msg":
+                        continue
+
+                    payload = event.get("payload") or {}
+                    if payload.get("type") != "token_count":
+                        continue
+
+                    timestamp = event.get("timestamp")
+                    if not timestamp:
+                        continue
+
+                    if latest is None or timestamp > latest["timestamp"]:
+                        latest = {
+                            "timestamp": timestamp,
+                            "path": path,
+                            "payload": payload,
+                        }
+        except OSError:
+            continue
+
+        if latest is not None:
+            return latest
+
+    return None
+
+
+def format_reset_time(epoch_seconds):
+    if epoch_seconds is None:
+        return "unknown"
+    dt = datetime.fromtimestamp(epoch_seconds, tz=timezone.utc).astimezone()
+    return dt.strftime("%Y-%m-%d %I:%M:%S %p %Z")
+
+
+def main():
+    latest = parse_latest_token_count()
+    if latest is None:
+        print("No Codex token_count events found in ~/.codex/sessions", file=sys.stderr)
+        return 1
+
+    rate_limits = latest["payload"].get("rate_limits") or {}
+    secondary = rate_limits.get("secondary") or {}
+    used_percent = secondary.get("used_percent")
+    reset_at = secondary.get("resets_at")
+    plan_type = rate_limits.get("plan_type") or "unknown"
+
+    if used_percent is None:
+        print("Latest token_count event does not include secondary.used_percent", file=sys.stderr)
+        return 1
+
+    left_percent = max(0.0, 100.0 - float(used_percent))
+    source = latest["path"]
+    timestamp = latest["timestamp"]
+
+    print(f"Weekly limit left: {left_percent:.1f}%")
+    print(f"Weekly used: {float(used_percent):.1f}%")
+    print(f"Resets: {format_reset_time(reset_at)}")
+    print(f"Plan: {plan_type}")
+    print(f"Source event: {timestamp}")
+    print(f"Source file: {source}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
