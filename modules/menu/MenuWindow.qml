@@ -53,6 +53,16 @@ Scope {
       return
     }
 
+    if (entry.action === "toggle-bar-density") {
+      menuCompactState.toggle()
+      return
+    }
+
+    if (entry.action === "reload-apps") {
+      appCatalog.reload()
+      return
+    }
+
     if (entry.view) {
       if (sidebarState.collapsed) sidebarState.expand()
       menuState.push(entry.view)
@@ -72,6 +82,10 @@ Scope {
     id: sidebarState
   }
 
+  AppCatalog {
+    id: appCatalog
+  }
+
   Theme {
     id: menuTheme
   }
@@ -80,6 +94,7 @@ Scope {
     id: registry
     sidebarExclusive: sidebarState.exclusive
     sidebarCollapsed: sidebarState.collapsed
+    appCatalog: appCatalog
   }
 
   Connections {

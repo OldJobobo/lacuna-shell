@@ -7,6 +7,7 @@ LacunaRect {
   signal secondaryTriggered()
 
   property alias icon: iconLabel.text
+  property string iconSource: ""
   property color foreground: "#d8dee9"
   property color muted: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.48)
   property color accent: "#88c0d0"
@@ -23,10 +24,28 @@ LacunaRect {
   height: implicitHeight
   clip: true
 
+  Image {
+    id: iconImage
+
+    anchors.centerIn: parent
+    width: Math.max(12, root.iconSize + 1)
+    height: width
+    source: root.iconSource
+    sourceSize.width: width
+    sourceSize.height: height
+    fillMode: Image.PreserveAspectFit
+    asynchronous: true
+    mipmap: true
+    smooth: true
+    visible: root.iconSource !== "" && status === Image.Ready
+    opacity: stateLayer.containsMouse ? 1 : 0.86
+  }
+
   LacunaText {
     id: iconLabel
 
     anchors.centerIn: parent
+    visible: root.iconSource === "" || iconImage.status !== Image.Ready
     color: stateLayer.containsMouse ? root.hoverAccent : root.muted
     fontFamily: root.fontFamily
     font.pixelSize: root.iconSize

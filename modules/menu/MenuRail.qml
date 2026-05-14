@@ -85,6 +85,7 @@ Column {
 
     LacunaIconButton {
       icon: modelData.icon
+      iconSource: modelData.iconSource || ""
       foreground: root.foreground
       muted: root.muted
       accent: root.toneAccent(modelData.tone)

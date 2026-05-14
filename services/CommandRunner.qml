@@ -6,6 +6,10 @@ Item {
 
   property var queue: []
 
+  function quote(value) {
+    return "'" + String(value).replace(/'/g, "'\\''") + "'"
+  }
+
   function run(command) {
     if (!command) return
 
@@ -20,7 +24,7 @@ Item {
     queue = queue.slice(1)
 
     console.log("lacuna command:", command)
-    proc.command = ["setsid", "-f", "bash", "-lc", command]
+    proc.command = ["setsid", "-f", "bash", "-lc", command + " || notify-send " + quote("Lacuna command failed") + " " + quote(command)]
     proc.running = true
   }
 

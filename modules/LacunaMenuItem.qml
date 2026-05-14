@@ -8,6 +8,7 @@ LacunaRect {
 
   property string kind: "item"
   property string icon: ""
+  property string iconSource: ""
   property string label: ""
   property string hint: ""
   property string tone: "nav"
@@ -123,9 +124,27 @@ LacunaRect {
       height: root.rowHeight
       anchors.verticalCenter: parent.verticalCenter
 
+      Image {
+        id: iconImage
+
+        anchors.centerIn: parent
+        width: root.featured ? 22 : root.primary ? 19 : 17
+        height: width
+        source: root.iconSource
+        sourceSize.width: width
+        sourceSize.height: height
+        fillMode: Image.PreserveAspectFit
+        asynchronous: true
+        mipmap: true
+        smooth: true
+        visible: root.iconSource !== "" && status === Image.Ready
+        opacity: root.hovered ? 1 : 0.88
+      }
+
       LacunaText {
         anchors.centerIn: parent
         width: parent.width
+        visible: root.iconSource === "" || iconImage.status !== Image.Ready
         text: root.icon
         color: root.tone === "nav" && !root.hovered ? root.muted : root.toneAccent
         fontFamily: root.fontFamily

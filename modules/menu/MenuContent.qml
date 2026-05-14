@@ -82,18 +82,29 @@ Column {
     color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.07)
   }
 
-  Column {
+  Flickable {
     width: parent.width
-    spacing: 2
+    height: Math.max(0, root.height - y)
+    contentWidth: width
+    contentHeight: itemList.implicitHeight
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
 
-    Repeater {
-      model: root.registry.itemsFor(root.menuState.currentView)
+    Column {
+      id: itemList
 
-      Loader {
-        property var entry: modelData
+      width: parent.width
+      spacing: 2
 
-        width: parent.width
-        sourceComponent: entry.kind === "header" ? sectionDelegate : itemDelegate
+      Repeater {
+        model: root.registry.itemsFor(root.menuState.currentView)
+
+        Loader {
+          property var entry: modelData
+
+          width: parent.width
+          sourceComponent: entry.kind === "header" ? sectionDelegate : itemDelegate
+        }
       }
     }
 
@@ -118,6 +129,7 @@ Column {
         width: parent.width
         kind: parent.entry.kind
         icon: parent.entry.icon
+        iconSource: parent.entry.iconSource || ""
         label: parent.entry.label
         hint: parent.entry.hint
         hasChildren: parent.entry.view !== ""
