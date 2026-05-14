@@ -39,6 +39,7 @@ Scope {
       readonly property int shadowExtent: 8
       readonly property int edgeMargin: dense ? 4 : 8
       readonly property int clusterSpacing: narrow ? 3 : dense ? 4 : 8
+      readonly property int narrowTextLength: 12
 
       screen: modelData
       color: "transparent"
@@ -117,7 +118,7 @@ Scope {
           }
 
           ScriptPill {
-            visible: !panel.narrow && cssClass !== "hidden" && displayText.length > 0
+            visible: cssClass !== "hidden" && displayText.length > 0
             tooltipHost: tooltips
             compact: panel.dense
             script: "scripts/codex-weekly-status.sh"
@@ -126,10 +127,11 @@ Scope {
             image: "assets/openai-light-themed.svg"
             refreshKey: theme.rawColor("color5")
             leadingImageSize: panel.dense ? 10 : 12
+            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
           }
 
           ScriptPill {
-            visible: !panel.narrow && cssClass !== "hidden" && displayText.length > 0
+            visible: cssClass !== "hidden" && displayText.length > 0
             tooltipHost: tooltips
             compact: panel.dense
             script: "scripts/claude-code-status.sh"
@@ -138,9 +140,11 @@ Scope {
             image: "assets/claude-ai-themed.svg"
             refreshKey: theme.rawColor("color9")
             leadingImageSize: panel.dense ? 10 : 12
+            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
           }
 
           MprisPill {
+            visible: !panel.narrow
             tooltipHost: tooltips
             compact: panel.dense
             moduleAccent: theme.soft
@@ -153,7 +157,7 @@ Scope {
 
         Row {
           id: centerCluster
-          visible: !panel.narrow && !panel.portrait
+          visible: !panel.portrait
           anchors.centerIn: parent
           spacing: panel.clusterSpacing
 
@@ -166,6 +170,7 @@ Scope {
             alertAccent: theme.color("color11")
             foreground: theme.foreground
             background: theme.background
+            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
             onTriggered: commands.run("omarchy voxtype model")
             onSecondaryTriggered: commands.run("omarchy voxtype config")
           }
@@ -182,7 +187,8 @@ Scope {
             moduleAccent: theme.color("color6")
             foreground: theme.foreground
             background: theme.background
-            wide: true
+            wide: !panel.narrow
+            shortMode: panel.narrow
           }
 
           ScriptPill {
@@ -194,6 +200,7 @@ Scope {
             alertAccent: theme.color("color9")
             foreground: theme.foreground
             background: theme.background
+            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
             onTriggered: commands.run(scriptPath + " --open")
           }
 
@@ -205,6 +212,7 @@ Scope {
             moduleAccent: theme.muted
             foreground: theme.foreground
             background: theme.background
+            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
             onTriggered: commands.run("omarchy launch floating terminal with presentation 'omarchy update'")
           }
 
@@ -217,6 +225,7 @@ Scope {
             alertAccent: theme.color("color9")
             foreground: theme.foreground
             background: theme.background
+            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
             onTriggered: commands.run("omarchy toggle idle")
           }
 
@@ -229,6 +238,7 @@ Scope {
             alertAccent: theme.color("color9")
             foreground: theme.foreground
             background: theme.background
+            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
             onTriggered: commands.run("omarchy capture screenrecording")
           }
 
@@ -256,37 +266,27 @@ Scope {
             tooltipHost: tooltips
           }
 
-          ClockPill {
-            visible: panel.narrow
-            tooltipHost: tooltips
-            compact: panel.dense
-            shortMode: true
-            moduleAccent: theme.color("color6")
-            foreground: theme.foreground
-            background: theme.background
-          }
-
           ThemePill {
-            visible: !panel.narrow && themeService.themeTitle.length > 0
+            visible: themeService.themeTitle.length > 0
             tooltipHost: tooltips
             compact: panel.dense
             themeService: theme
             moduleAccent: theme.soft
             foreground: theme.foreground
             background: theme.background
-            maxTextLength: 26
+            maxTextLength: panel.narrow ? 14 : 26
             onTriggered: commands.run("omarchy theme switcher")
             onSecondaryTriggered: commands.run("current=\"$(omarchy theme current)\"; next=\"$(omarchy theme list | grep -Fvx \"$current\" | shuf -n 1)\"; [ -n \"$next\" ] && omarchy theme set \"$next\"")
           }
 
           WallpaperPill {
-            visible: !panel.narrow && text.length > 0
+            visible: text.length > 0
             tooltipHost: tooltips
             compact: panel.dense
             moduleAccent: theme.color("color11")
             foreground: theme.foreground
             background: theme.background
-            maxTextLength: 18
+            maxTextLength: panel.narrow ? 12 : 18
             onTriggered: commands.run("omarchy theme bg-switcher")
             onSecondaryTriggered: commands.run("omarchy theme bg next")
           }
@@ -317,17 +317,6 @@ Scope {
                 compact: panel.dense
                 script: "scripts/network-status.sh"
                 interval: 3000
-                moduleAccent: theme.color("color12")
-                foreground: theme.foreground
-                background: theme.background
-                onTriggered: commands.run("hyprctl dispatch 'hl.dsp.exec_cmd([[omarchy launch wifi]])'")
-              }
-
-              ScriptPill {
-                tooltipHost: tooltips
-                compact: panel.dense
-                script: "scripts/wifi-status.sh"
-                interval: 5000
                 moduleAccent: theme.color("color12")
                 foreground: theme.foreground
                 background: theme.background
@@ -582,17 +571,6 @@ Scope {
             compact: compactState.compact
             script: "scripts/network-status.sh"
             interval: 3000
-            moduleAccent: theme.color("color12")
-            foreground: theme.foreground
-            background: theme.background
-            onTriggered: commands.run("hyprctl dispatch 'hl.dsp.exec_cmd([[omarchy launch wifi]])'")
-          }
-
-          ScriptPill {
-            tooltipHost: tooltips
-            compact: compactState.compact
-            script: "scripts/wifi-status.sh"
-            interval: 5000
             moduleAccent: theme.color("color12")
             foreground: theme.foreground
             background: theme.background

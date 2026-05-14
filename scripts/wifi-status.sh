@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-iface="$(iw dev 2>/dev/null | awk '/Interface/ {print $2; exit}')"
+iface="$(iw dev 2>/dev/null | awk '/Interface/ {print $2; exit}' || true)"
 
 if [[ -z "${iface:-}" ]]; then
   printf '%s\n' '{"text":"","tooltip":"","class":"hidden"}'
