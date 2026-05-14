@@ -34,7 +34,7 @@ Scope {
       required property var modelData
       readonly property bool portrait: Number(modelData.width || 0) > 0 && Number(modelData.height || 0) > Number(modelData.width || 0)
       readonly property bool narrow: !portrait && width > 0 && width <= 1600
-      readonly property bool dense: compactState.compact || narrow
+      readonly property bool dense: compactState.compact
       readonly property int barHeight: dense ? 24 : 32
       readonly property int shadowExtent: 8
       readonly property int edgeMargin: dense ? 4 : 8
@@ -188,7 +188,6 @@ Scope {
             foreground: theme.foreground
             background: theme.background
             wide: !panel.narrow
-            shortMode: panel.narrow
           }
 
           ScriptPill {
