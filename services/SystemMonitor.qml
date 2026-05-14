@@ -123,20 +123,23 @@ Item {
   Process {
     id: diskProc
     property string output: ""
-    command: ["df", "-P", "/"]
+    command: ["/usr/bin/df", "-P", "/"]
 
     stdout: SplitParser {
       onRead: function(data) {
-        diskProc.output += data
+        diskProc.output += data + "\n"
       }
     }
 
     onExited: {
       var lines = diskProc.output.trim().split(/\n/)
-      if (lines.length < 2) return
+      if (lines.length < 2) {
+        root.diskText = "?? 󰋊"
+        return
+      }
 
       var fields = lines[1].trim().split(/\s+/)
-      if (fields.length >= 5) root.diskText = fields[4] + " 󰋊"
+      root.diskText = fields.length >= 5 ? fields[4] + " 󰋊" : "?? 󰋊"
     }
   }
 }

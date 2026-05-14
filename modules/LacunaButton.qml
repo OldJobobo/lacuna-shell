@@ -24,12 +24,14 @@ Rectangle {
   property int labelFontWeight: active ? Font.DemiBold : Font.Normal
   property bool labelHoverPulse: false
   property real labelHoverScale: 1.18
-  property real labelPulseScale: 1.0
+  property real labelAnimatedPixelSize: labelPixelSize
   property bool hovered: false
   property bool sweepActive: false
   property color sweepColor: accent
   property real sweepPosition: -0.35
   property var tooltipHost: null
+
+  onLabelPixelSizeChanged: labelAnimatedPixelSize = hovered && labelHoverPulse ? labelPixelSize * labelHoverScale : labelPixelSize
 
   width: Math.max(minButtonWidth, content.implicitWidth + contentHorizontalPadding)
   height: compact ? 24 : 32
@@ -114,19 +116,10 @@ Rectangle {
       visible: !root.sweepActive
       color: root.baseTextColor()
       font.family: "BlexMono Nerd Font Propo"
-      font.pixelSize: root.labelPixelSize
+      font.pixelSize: Math.round(root.labelAnimatedPixelSize)
       font.weight: root.labelFontWeight
       elide: Text.ElideRight
       maximumLineCount: 1
-      scale: root.labelHoverPulse && root.hovered ? root.labelPulseScale : 1
-      transformOrigin: Item.Center
-
-      Behavior on scale {
-        NumberAnimation {
-          duration: 120
-          easing.type: Easing.OutCubic
-        }
-      }
     }
 
     Row {
@@ -161,12 +154,12 @@ Rectangle {
     cursorShape: Qt.PointingHandCursor
     onEntered: {
       root.hovered = true
-      root.labelPulseScale = root.labelHoverScale
+      root.labelAnimatedPixelSize = root.labelPixelSize * root.labelHoverScale
       root.showTooltip()
     }
     onExited: {
       root.hovered = false
-      root.labelPulseScale = 1.0
+      root.labelAnimatedPixelSize = root.labelPixelSize
       root.hideTooltip()
     }
     onClicked: function(mouse) {
@@ -184,23 +177,23 @@ Rectangle {
 
     NumberAnimation {
       target: root
-      property: "labelPulseScale"
-      from: root.labelHoverScale
-      to: root.labelHoverScale + 0.08
+      property: "labelAnimatedPixelSize"
+      from: root.labelPixelSize * root.labelHoverScale
+      to: root.labelPixelSize * (root.labelHoverScale + 0.08)
       duration: 420
       easing.type: Easing.InOutSine
     }
 
     NumberAnimation {
       target: root
-      property: "labelPulseScale"
-      from: root.labelHoverScale + 0.08
-      to: root.labelHoverScale
+      property: "labelAnimatedPixelSize"
+      from: root.labelPixelSize * (root.labelHoverScale + 0.08)
+      to: root.labelPixelSize * root.labelHoverScale
       duration: 520
       easing.type: Easing.InOutSine
     }
 
-    onStopped: root.labelPulseScale = 1.0
+    onStopped: root.labelAnimatedPixelSize = root.hovered ? root.labelPixelSize * root.labelHoverScale : root.labelPixelSize
   }
 
 }

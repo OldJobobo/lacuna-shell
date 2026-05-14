@@ -16,7 +16,7 @@ Row {
   spacing: 4
   readonly property string cpuText: monitor.cpuPercent + "% 󰍛"
   readonly property string memText: monitor.memoryPercent + "% "
-  readonly property string diskText: monitor.diskText
+  readonly property string diskText: monitor.diskText || "-- 󰋊"
 
   LacunaButton {
     text: root.diskText
@@ -24,7 +24,8 @@ Row {
     compact: root.compact
     foreground: root.foreground
     background: root.background
-    accent: root.diskAccent
+    accent: root.foreground
+    accentText: false
     tooltip: "Disk usage\n" + root.diskText
     tooltipHost: root.tooltipHost
     onTriggered: root.commandRunner.run("omarchy launch or focus tui btop")

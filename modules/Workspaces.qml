@@ -26,6 +26,7 @@ Row {
 
       text: String(index + 1)
       minButtonWidth: root.compact ? 24 : 32
+      contentHorizontalPadding: 0
       compact: root.compact
       foreground: root.foreground
       background: root.background

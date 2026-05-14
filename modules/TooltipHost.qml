@@ -6,11 +6,14 @@ Item {
   id: root
 
   required property var panelWindow
+  property int panelSurfaceY: 0
+  property int panelSurfaceHeight: panelWindow ? panelWindow.height : 0
   property var targetItem: null
   property string tooltipText: ""
   property color accent: "#88c0d0"
   property color foreground: "#d8dee9"
   property color panelColor: "#101315"
+  readonly property color opaquePanelColor: Qt.rgba(panelColor.r, panelColor.g, panelColor.b, 1)
   property bool tooltipVisible: false
   property bool richTooltip: false
   property int popupX: 4
@@ -117,7 +120,7 @@ Item {
     var maxX = Math.max(8, panelWindow.width - popupWidth - 8)
 
     popupX = Math.round(Math.max(8, Math.min(desiredX, maxX)))
-    popupY = Math.round(panelWindow.height - connectorOverlap)
+    popupY = Math.round(panelSurfaceY + panelSurfaceHeight - connectorOverlap)
     attachX = Math.round(point.x - popupX)
   }
 
@@ -174,7 +177,7 @@ Item {
         containsMode: Shape.FillContains
 
         ShapePath {
-          fillColor: root.panelColor
+          fillColor: root.opaquePanelColor
           strokeWidth: 0
           startX: 0
           startY: root.bodyTop

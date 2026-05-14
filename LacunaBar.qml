@@ -31,13 +31,15 @@ Scope {
       readonly property bool portrait: Number(modelData.width || 0) > 0 && Number(modelData.height || 0) > Number(modelData.width || 0)
       readonly property bool narrow: !portrait && width > 0 && width <= 1600
       readonly property bool dense: compactState.compact || narrow
+      readonly property int barHeight: dense ? 24 : 32
+      readonly property int shadowExtent: 8
       readonly property int edgeMargin: dense ? 4 : 8
       readonly property int clusterSpacing: narrow ? 3 : dense ? 4 : 8
 
       screen: modelData
       color: "transparent"
-      implicitHeight: dense ? 24 : 32
-      exclusiveZone: implicitHeight
+      implicitHeight: barHeight + shadowExtent
+      exclusiveZone: barHeight
       exclusionMode: ExclusionMode.Normal
       WlrLayershell.namespace: "lacuna"
       WlrLayershell.layer: WlrLayer.Top
@@ -51,12 +53,28 @@ Scope {
       TooltipHost {
         id: tooltips
         panelWindow: panel
+        panelSurfaceHeight: panel.barHeight
         panelColor: theme.panel
       }
 
       Rectangle {
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        height: panel.barHeight
         color: theme.panel
+
+        Rectangle {
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.top: parent.bottom
+          height: panel.shadowExtent
+          visible: !tooltips.tooltipVisible
+          gradient: Gradient {
+            GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.28) }
+            GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.0) }
+          }
+        }
 
         Row {
           id: leftCluster
@@ -628,13 +646,15 @@ Scope {
 
       required property var modelData
       readonly property bool portrait: Number(modelData.width || 0) > 0 && Number(modelData.height || 0) > Number(modelData.width || 0)
+      readonly property int barHeight: compactState.compact ? 24 : 32
+      readonly property int shadowExtent: 8
       readonly property int edgeMargin: compactState.compact ? 4 : 8
 
       screen: modelData
       visible: portrait
       color: "transparent"
-      implicitHeight: compactState.compact ? 24 : 32
-      exclusiveZone: visible ? implicitHeight : 0
+      implicitHeight: barHeight + shadowExtent
+      exclusiveZone: visible ? barHeight : 0
       exclusionMode: ExclusionMode.Normal
       WlrLayershell.namespace: "lacuna-bottom"
       WlrLayershell.layer: WlrLayer.Top
@@ -648,12 +668,29 @@ Scope {
       TooltipHost {
         id: bottomTooltips
         panelWindow: bottomPanel
+        panelSurfaceY: bottomPanel.shadowExtent
+        panelSurfaceHeight: bottomPanel.barHeight
         panelColor: theme.panel
       }
 
       Rectangle {
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: bottomPanel.barHeight
         color: theme.panel
+
+        Rectangle {
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.bottom: parent.top
+          height: bottomPanel.shadowExtent
+          visible: !bottomTooltips.tooltipVisible
+          gradient: Gradient {
+            GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.0) }
+            GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.28) }
+          }
+        }
 
         Row {
           anchors.left: parent.left
