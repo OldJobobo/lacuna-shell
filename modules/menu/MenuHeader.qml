@@ -15,9 +15,11 @@ Item {
   property color accent: "#88c0d0"
   property color danger: "#bf616a"
   property string bodyFontFamily: "GeistMono Nerd Font"
+  property bool compact: false
+  readonly property int controlSize: compact ? 24 : tokens.controlSmall
 
   width: parent ? parent.width : implicitWidth
-  height: 62
+  height: compact ? 50 : 62
 
   FontLoader {
     id: headingFont
@@ -31,23 +33,23 @@ Item {
     anchors.left: parent.left
     anchors.top: parent.top
     anchors.topMargin: 2
-    width: tokens.controlSmall
-    height: tokens.controlSmall
+    width: root.controlSize
+    height: root.controlSize
     text: "󱥸"
     color: root.accent
     fontFamily: root.bodyFontFamily
-    font.pixelSize: tokens.textGlyph
+    font.pixelSize: root.compact ? 17 : tokens.textGlyph
     horizontalAlignment: Text.AlignHCenter
     verticalAlignment: Text.AlignVCenter
   }
 
   Column {
     anchors.left: headerGlyph.right
-    anchors.leftMargin: tokens.spaceNormal
+    anchors.leftMargin: root.compact ? tokens.spaceSmall : tokens.spaceNormal
     anchors.right: headerControls.left
     anchors.rightMargin: tokens.spaceLarge
     anchors.top: parent.top
-    anchors.topMargin: 5
+    anchors.topMargin: root.compact ? 3 : 5
     spacing: tokens.spaceTiny
 
     LacunaText {
@@ -55,7 +57,7 @@ Item {
       text: root.title
       color: root.foreground
       fontFamily: headingFont.name !== "" ? headingFont.name : "Tektur"
-      font.pixelSize: tokens.textTitle
+      font.pixelSize: root.compact ? 14 : tokens.textTitle
       font.weight: Font.DemiBold
     }
 
@@ -64,7 +66,7 @@ Item {
       text: root.subtitle
       color: root.muted
       fontFamily: root.bodyFontFamily
-      font.pixelSize: tokens.textHint
+      font.pixelSize: root.compact ? 8 : tokens.textHint
     }
   }
 
@@ -74,8 +76,8 @@ Item {
     anchors.right: parent.right
     anchors.top: parent.top
     width: backButton.width + closeButton.width + spacing
-    height: tokens.controlSmall
-    spacing: tokens.spaceSmall
+    height: root.controlSize
+    spacing: root.compact ? 2 : tokens.spaceSmall
 
     LacunaIconButton {
       id: backButton
@@ -88,7 +90,8 @@ Item {
       accent: root.accent
       hoverAccent: root.accent
       fontFamily: root.bodyFontFamily
-      iconSize: 18
+      buttonSize: root.controlSize
+      iconSize: root.compact ? 16 : 18
       disabled: !visible
       onTriggered: root.backRequested()
     }
@@ -102,7 +105,8 @@ Item {
       accent: root.danger
       hoverAccent: root.danger
       fontFamily: root.bodyFontFamily
-      iconSize: tokens.textIcon
+      buttonSize: root.controlSize
+      iconSize: root.compact ? 13 : tokens.textIcon
       onTriggered: root.closeRequested()
     }
   }
@@ -119,7 +123,7 @@ Item {
   LacunaRect {
     anchors.left: headerGlyph.left
     anchors.bottom: parent.bottom
-    width: 34
+    width: root.compact ? 26 : 34
     height: 2
     color: root.accent
     opacity: 0.75

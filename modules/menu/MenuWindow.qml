@@ -8,6 +8,8 @@ Scope {
   id: root
 
   required property var menuState
+  property var sharedCompactState: null
+  readonly property var compactState: sharedCompactState || localCompactState
   property color foreground: menuTheme.foreground
   property color background: menuTheme.background
   property color panelColor: menuTheme.panel
@@ -17,13 +19,14 @@ Scope {
   property color dangerAccent: menuTheme.color("color9")
   property color navAccent: menuTheme.soft
   property color muted: menuTheme.muted
-  property int fullPanelWidth: 340
+  property bool compact: compactState.compact
+  property int fullPanelWidth: compact ? 300 : 340
   property int railButtonWidth: barHeight
-  property int railPanelWidth: railButtonWidth + 10
+  property int railPanelWidth: railButtonWidth + (compact ? 6 : 10)
   property int panelWidth: sidebarState.collapsed ? railPanelWidth : fullPanelWidth
-  property int barHeight: menuCompactState.compact ? 24 : 32
-  property int joinRadius: 18
-  property int connectorOverlap: 33
+  property int barHeight: compact ? 24 : 32
+  property int joinRadius: compact ? 14 : 18
+  property int connectorOverlap: compact ? 25 : 33
   property int bodyRightInset: joinRadius
   property int surfaceRightInset: sidebarState.collapsed ? 0 : bodyRightInset
   // In exclusive mode the compositor pushes our window down by the bar's
@@ -54,7 +57,7 @@ Scope {
     }
 
     if (entry.action === "toggle-bar-density") {
-      menuCompactState.toggle()
+      compactState.toggle()
       return
     }
 
@@ -75,7 +78,7 @@ Scope {
   }
 
   CompactState {
-    id: menuCompactState
+    id: localCompactState
   }
 
   SidebarState {
@@ -153,10 +156,11 @@ Scope {
       MenuContent {
         visible: !sidebarState.collapsed
         anchors.fill: parent
-        anchors.leftMargin: 14
-        anchors.rightMargin: 14
-        anchors.topMargin: root.barBottomY + 8
-        anchors.bottomMargin: 16
+        anchors.leftMargin: root.compact ? 10 : 14
+        anchors.rightMargin: root.compact ? 10 : 14
+        anchors.topMargin: root.barBottomY + (root.compact ? 6 : 8)
+        anchors.bottomMargin: root.compact ? 10 : 16
+        compact: root.compact
         open: root.menuState.open
         menuState: root.menuState
         registry: registry
@@ -178,8 +182,9 @@ Scope {
       MenuRail {
         visible: sidebarState.collapsed
         anchors.top: parent.top
-        anchors.topMargin: root.barBottomY + 10
+        anchors.topMargin: root.barBottomY + (root.compact ? 6 : 10)
         anchors.horizontalCenter: parent.horizontalCenter
+        compact: root.compact
         open: root.menuState.open
         menuState: root.menuState
         registry: registry

@@ -9,6 +9,7 @@ Column {
 
   required property var menuState
   required property var registry
+  property bool compact: false
   property bool open: true
   property color foreground: "#d8dee9"
   property color accent: "#88c0d0"
@@ -73,7 +74,7 @@ Column {
     tooltipY = Math.round(Math.max(8, Math.min(point.y - tooltipHeight / 2, panelWindow.height - tooltipHeight - 8)))
   }
 
-  spacing: 7
+  spacing: compact ? 5 : 7
   opacity: open ? 1 : 0
 
   Behavior on opacity {
@@ -91,7 +92,7 @@ Column {
       accent: root.toneAccent(modelData.tone)
       hoverAccent: root.toneAccent(modelData.tone)
       buttonSize: root.railWidth
-      iconSize: modelData.priority === "primary" ? 17 : 15
+      iconSize: root.compact ? (modelData.priority === "primary" ? 15 : 13) : (modelData.priority === "primary" ? 17 : 15)
       fontFamily: root.bodyFontFamily
       onHoveredChanged: if (hovered) root.showTooltip(this, modelData)
                       else root.hideTooltip(this)

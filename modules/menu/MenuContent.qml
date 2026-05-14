@@ -10,6 +10,7 @@ Column {
   required property var menuState
   required property var registry
   property bool open: true
+  property bool compact: false
   property string currentView: menuState.currentView
   property real viewProgress: 1
   property string themeTitle: ""
@@ -33,7 +34,7 @@ Column {
     return root.navAccent
   }
 
-  spacing: 10
+  spacing: compact ? 7 : 10
   onCurrentViewChanged: {
     viewProgress = 0
     viewReveal.restart()
@@ -71,6 +72,7 @@ Column {
     muted: root.muted
     accent: root.accent
     danger: root.dangerAccent
+    compact: root.compact
     bodyFontFamily: root.bodyFontFamily
     onBackRequested: root.menuState.back()
     onCloseRequested: root.menuState.close()
@@ -118,6 +120,7 @@ Column {
         muted: root.muted
         accent: root.toneAccent(parent.entry.tone)
         band: parent.entry.tone === "lacuna" || parent.entry.tone === "danger"
+        compact: root.compact
         fontFamily: root.bodyFontFamily
       }
     }
@@ -145,6 +148,7 @@ Column {
         fontFamily: root.bodyFontFamily
         labelFontFamily: root.itemFontFamily
         iconRailWidth: root.iconRailWidth
+        compact: root.compact
         onTriggered: root.activated(parent.entry)
       }
     }

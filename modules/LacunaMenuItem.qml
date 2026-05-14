@@ -24,6 +24,7 @@ LacunaRect {
   property string fontFamily: "GeistMono Nerd Font"
   property string labelFontFamily: fontFamily
   property int iconRailWidth: 32
+  property bool compact: false
   readonly property bool hovered: stateLayer.containsMouse
   readonly property bool pressed: stateLayer.pressed
   readonly property real reveal: stateLayer.reveal
@@ -31,11 +32,11 @@ LacunaRect {
   readonly property bool featured: layout === "featured"
   readonly property bool compactRow: layout === "compact"
   readonly property bool primary: priority === "primary"
-  readonly property int rowHeight: featured ? 48 : primary ? 40 : compactRow ? 32 : 38
+  readonly property int rowHeight: compact ? (featured ? 42 : primary ? 34 : compactRow ? 28 : 32) : (featured ? 48 : primary ? 40 : compactRow ? 32 : 38)
   property int contentLeftMargin: Math.round(reveal * (featured ? 3 : 2))
 
   width: parent ? parent.width : implicitWidth
-  height: header ? 30 : rowHeight
+  height: header ? (compact ? 24 : 30) : rowHeight
   clip: true
 
   Behavior on contentLeftMargin {
@@ -117,7 +118,7 @@ LacunaRect {
     anchors.verticalCenter: parent.verticalCenter
     anchors.leftMargin: root.contentLeftMargin
     anchors.rightMargin: 8
-    spacing: root.featured ? 8 : root.primary ? 7 : 6
+    spacing: root.compact ? (root.featured ? 6 : 5) : (root.featured ? 8 : root.primary ? 7 : 6)
 
     Item {
       width: root.iconRailWidth
@@ -128,7 +129,7 @@ LacunaRect {
         id: iconImage
 
         anchors.centerIn: parent
-        width: root.featured ? 22 : root.primary ? 19 : 17
+        width: root.compact ? (root.featured ? 19 : root.primary ? 16 : 14) : (root.featured ? 22 : root.primary ? 19 : 17)
         height: width
         source: root.iconSource
         sourceSize.width: width
@@ -148,7 +149,7 @@ LacunaRect {
         text: root.icon
         color: root.tone === "nav" && !root.hovered ? root.muted : root.toneAccent
         fontFamily: root.fontFamily
-        font.pixelSize: root.featured ? 17 : root.primary ? 15 : 13
+        font.pixelSize: root.compact ? (root.featured ? 15 : root.primary ? 13 : 12) : (root.featured ? 17 : root.primary ? 15 : 13)
         horizontalAlignment: Text.AlignHCenter
       }
     }
@@ -163,7 +164,7 @@ LacunaRect {
         text: root.label
         color: root.foreground
         fontFamily: root.labelFontFamily
-        font.pixelSize: root.featured ? 15 : root.primary ? 14 : 13
+        font.pixelSize: root.compact ? (root.featured ? 13 : root.primary ? 12 : 11) : (root.featured ? 15 : root.primary ? 14 : 13)
         font.weight: root.hovered || root.primary || root.featured ? Font.DemiBold : Font.Normal
       }
     }
@@ -178,7 +179,7 @@ LacunaRect {
     text: "›"
     color: root.hovered ? root.toneAccent : root.muted
     fontFamily: root.fontFamily
-    font.pixelSize: 16
+    font.pixelSize: root.compact ? 14 : 16
   }
 
   LacunaStateLayer {

@@ -8,6 +8,8 @@ Scope {
   id: root
 
   property var menuState: null
+  property var sharedCompactState: null
+  readonly property var compactState: sharedCompactState || localCompactState
 
   Theme {
     id: theme
@@ -18,7 +20,7 @@ Scope {
   }
 
   CompactState {
-    id: compactState
+    id: localCompactState
   }
 
   SystemMonitor {
@@ -33,13 +35,13 @@ Scope {
 
       required property var modelData
       readonly property bool portrait: Number(modelData.width || 0) > 0 && Number(modelData.height || 0) > Number(modelData.width || 0)
-      readonly property bool narrow: !portrait && width > 0 && width <= 1600
+      readonly property bool notebook: !portrait && width > 0 && width <= 1600
       readonly property bool dense: compactState.compact
       readonly property int barHeight: dense ? 24 : 32
       readonly property int shadowExtent: 8
       readonly property int edgeMargin: dense ? 4 : 8
-      readonly property int clusterSpacing: narrow ? 3 : dense ? 4 : 8
-      readonly property int narrowTextLength: 12
+      readonly property int clusterSpacing: notebook ? 3 : dense ? 4 : 8
+      readonly property int notebookTextLength: 12
 
       screen: modelData
       color: "transparent"
@@ -127,7 +129,7 @@ Scope {
             image: "assets/openai-light-themed.svg"
             refreshKey: theme.rawColor("color5")
             leadingImageSize: panel.dense ? 10 : 12
-            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
+            maxTextLength: panel.notebook ? panel.notebookTextLength : 32
           }
 
           ScriptPill {
@@ -140,17 +142,17 @@ Scope {
             image: "assets/claude-ai-themed.svg"
             refreshKey: theme.rawColor("color9")
             leadingImageSize: panel.dense ? 10 : 12
-            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
+            maxTextLength: panel.notebook ? panel.notebookTextLength : 32
           }
 
           MprisPill {
-            visible: !panel.narrow
+            visible: !panel.notebook
             tooltipHost: tooltips
             compact: panel.dense
             moduleAccent: theme.soft
             foreground: theme.foreground
             background: theme.background
-            maxTextLength: panel.narrow ? 18 : panel.dense ? 22 : 34
+            maxTextLength: panel.notebook ? 18 : panel.dense ? 22 : 34
             sweepOnPlaying: true
           }
         }
@@ -170,7 +172,7 @@ Scope {
             alertAccent: theme.color("color11")
             foreground: theme.foreground
             background: theme.background
-            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
+            maxTextLength: panel.notebook ? panel.notebookTextLength : 32
             onTriggered: commands.run("omarchy voxtype model")
             onSecondaryTriggered: commands.run("omarchy voxtype config")
           }
@@ -187,7 +189,7 @@ Scope {
             moduleAccent: theme.color("color6")
             foreground: theme.foreground
             background: theme.background
-            wide: !panel.narrow
+            wide: !panel.notebook
           }
 
           ScriptPill {
@@ -199,7 +201,7 @@ Scope {
             alertAccent: theme.color("color9")
             foreground: theme.foreground
             background: theme.background
-            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
+            maxTextLength: panel.notebook ? panel.notebookTextLength : 32
             onTriggered: commands.run(scriptPath + " --open")
           }
 
@@ -211,7 +213,7 @@ Scope {
             moduleAccent: theme.muted
             foreground: theme.foreground
             background: theme.background
-            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
+            maxTextLength: panel.notebook ? panel.notebookTextLength : 32
             onTriggered: commands.run("omarchy launch floating terminal with presentation 'omarchy update'")
           }
 
@@ -224,7 +226,7 @@ Scope {
             alertAccent: theme.color("color9")
             foreground: theme.foreground
             background: theme.background
-            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
+            maxTextLength: panel.notebook ? panel.notebookTextLength : 32
             onTriggered: commands.run("omarchy toggle idle")
           }
 
@@ -237,7 +239,7 @@ Scope {
             alertAccent: theme.color("color9")
             foreground: theme.foreground
             background: theme.background
-            maxTextLength: panel.narrow ? panel.narrowTextLength : 32
+            maxTextLength: panel.notebook ? panel.notebookTextLength : 32
             onTriggered: commands.run("omarchy capture screenrecording")
           }
 
@@ -273,7 +275,7 @@ Scope {
             moduleAccent: theme.soft
             foreground: theme.foreground
             background: theme.background
-            maxTextLength: panel.narrow ? 14 : 26
+            maxTextLength: panel.notebook ? 14 : 26
             onTriggered: commands.run("omarchy theme switcher")
             onSecondaryTriggered: commands.run("current=\"$(omarchy theme current)\"; next=\"$(omarchy theme list | grep -Fvx \"$current\" | shuf -n 1)\"; [ -n \"$next\" ] && omarchy theme set \"$next\"")
           }
@@ -285,7 +287,7 @@ Scope {
             moduleAccent: theme.color("color11")
             foreground: theme.foreground
             background: theme.background
-            maxTextLength: panel.narrow ? 12 : 18
+            maxTextLength: panel.notebook ? 12 : 18
             onTriggered: commands.run("omarchy theme bg-switcher")
             onSecondaryTriggered: commands.run("omarchy theme bg next")
           }
@@ -293,12 +295,12 @@ Scope {
           Row {
             id: rightStatusGroup
             anchors.verticalCenter: parent.verticalCenter
-            spacing: panel.narrow ? 2 : 4
+            spacing: panel.notebook ? 2 : 4
 
             Row {
               id: rightIconStatusGroup
               anchors.verticalCenter: parent.verticalCenter
-              spacing: panel.narrow ? 1 : 4
+              spacing: panel.notebook ? 1 : 4
 
               ScriptPill {
                 tooltipHost: tooltips
@@ -347,7 +349,7 @@ Scope {
             Row {
               id: rightTextStatusGroup
               anchors.verticalCenter: parent.verticalCenter
-              spacing: panel.narrow ? 2 : 4
+              spacing: panel.notebook ? 2 : 4
 
               AudioPill {
                 tooltipHost: tooltips
@@ -359,7 +361,7 @@ Scope {
               }
 
               SystemStats {
-                visible: !panel.narrow
+                visible: !panel.notebook
                 foreground: theme.foreground
                 background: theme.background
                 diskAccent: theme.color("color9")
@@ -372,7 +374,7 @@ Scope {
               }
 
               TemperaturePill {
-                visible: !panel.narrow && text.length > 0
+                visible: !panel.notebook && text.length > 0
                 tooltipHost: tooltips
                 compact: panel.dense
                 monitor: systemMonitor
