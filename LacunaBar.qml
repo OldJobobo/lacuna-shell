@@ -94,12 +94,9 @@ Scope {
             spacing: panel.dense ? 0 : 2
 
             LacunaButton {
-              text: "◌"
-              minButtonWidth: panel.dense ? 22 : 26
-              contentHorizontalPadding: panel.dense ? 2 : 4
-              labelPixelSize: panel.dense ? 17 : 22
-              labelFontWeight: Font.DemiBold
-              contentVerticalOffset: panel.dense ? -1 : -2
+              text: "󱥸"
+              minButtonWidth: panel.dense ? 24 : 32
+              contentHorizontalPadding: 0
               accent: theme.color("color14")
               foreground: theme.foreground
               background: theme.background
@@ -115,7 +112,6 @@ Scope {
               emptyColor: theme.muted
               urgentColor: theme.color("color9")
               compact: panel.dense
-              tooltipHost: tooltips
               commandRunner: commands
             }
           }
@@ -128,6 +124,7 @@ Scope {
             interval: 300000
             moduleAccent: theme.color("color5")
             image: "assets/openai-light-themed.svg"
+            refreshKey: theme.rawColor("color5")
             leadingImageSize: panel.dense ? 10 : 12
           }
 
@@ -139,6 +136,7 @@ Scope {
             interval: 30000
             moduleAccent: theme.color("color9")
             image: "assets/claude-ai-themed.svg"
+            refreshKey: theme.rawColor("color9")
             leadingImageSize: panel.dense ? 10 : 12
           }
 
@@ -517,12 +515,9 @@ Scope {
               spacing: compactState.compact ? 0 : 2
 
               LacunaButton {
-                text: "◌"
-                minButtonWidth: compactState.compact ? 22 : 26
-                contentHorizontalPadding: compactState.compact ? 2 : 4
-                labelPixelSize: compactState.compact ? 17 : 22
-                labelFontWeight: Font.DemiBold
-                contentVerticalOffset: compactState.compact ? -1 : -2
+                text: "󱥸"
+                minButtonWidth: compactState.compact ? 24 : 32
+                contentHorizontalPadding: 0
                 accent: theme.color("color14")
                 foreground: theme.foreground
                 background: theme.background
@@ -538,7 +533,6 @@ Scope {
                 emptyColor: theme.muted
                 urgentColor: theme.color("color9")
                 compact: compactState.compact
-                tooltipHost: tooltips
                 commandRunner: commands
               }
             }
@@ -717,6 +711,7 @@ Scope {
             interval: 300000
             moduleAccent: theme.color("color5")
             image: "assets/openai-light-themed.svg"
+            refreshKey: theme.rawColor("color5")
             leadingImageSize: compactState.compact ? 10 : 12
             maxTextLength: 18
           }
@@ -728,6 +723,7 @@ Scope {
             interval: 30000
             moduleAccent: theme.color("color9")
             image: "assets/claude-ai-themed.svg"
+            refreshKey: theme.rawColor("color9")
             leadingImageSize: compactState.compact ? 10 : 12
             maxTextLength: 18
           }

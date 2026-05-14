@@ -12,6 +12,9 @@ LacunaButton {
   property int maxTextLength: 32
   property string icon: ""
   property string image: ""
+  property string refreshKey: ""
+  property int imageRevision: 0
+  property bool pendingRefresh: false
   property color moduleAccent: "#88c0d0"
   property color alertAccent: moduleAccent
   property bool wide: false
@@ -22,6 +25,7 @@ LacunaButton {
   minButtonWidth: wide ? 120 : 32
   accent: cssClass === "alert" || cssClass === "low" || cssClass === "over" ? alertAccent : moduleAccent
   leadingImageSource: image ? lacunaPath + "/" + image : ""
+  leadingImageRevision: imageRevision
   text: displayText
   tooltip: rawTooltip
   active: cssClass === "alert" || cssClass === "active" || cssClass === "recording" || cssClass === "transcribing"
@@ -38,11 +42,19 @@ LacunaButton {
   }
 
   function refresh() {
-    if (!script || proc.running) return
+    if (!script) return
+    if (proc.running) {
+      pendingRefresh = true
+      return
+    }
+
+    pendingRefresh = false
     proc.output = ""
     proc.command = ["bash", "-lc", scriptPath]
     proc.running = true
   }
+
+  onRefreshKeyChanged: refresh()
 
   Timer {
     interval: root.interval
@@ -63,6 +75,8 @@ LacunaButton {
     }
 
     onExited: {
+      if (root.image) root.imageRevision += 1
+
       try {
         var payload = JSON.parse(proc.output || "{}")
         var nextText = root.clipped(payload.text || "")
@@ -74,6 +88,8 @@ LacunaButton {
         root.rawTooltip = ""
         root.cssClass = "hidden"
       }
+
+      if (root.pendingRefresh) root.refresh()
     }
   }
 }

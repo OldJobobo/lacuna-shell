@@ -1,6 +1,7 @@
 import QtQuick
+import "../components"
 
-Rectangle {
+LacunaRect {
   id: root
 
   signal triggered()
@@ -17,22 +18,29 @@ Rectangle {
   property bool compact: false
   property bool accentText: true
   property string leadingImageSource: ""
+  property int leadingImageRevision: 0
+  readonly property string leadingImageDisplaySource: leadingImageSource === "" ? "" : leadingImageSource + "?revision=" + leadingImageRevision
   property int leadingImageSize: compact ? 12 : 16
   property int contentVerticalOffset: 0
   property int contentHorizontalPadding: compact ? 8 : 16
   property int labelPixelSize: compact ? 11 : 12
   property int labelFontWeight: active ? Font.DemiBold : Font.Normal
   property bool labelHoverPulse: false
-  property real labelHoverScale: 1.18
-  property real labelHoverPulseLift: 0.035
+  property real labelHoverScale: 1.08
+  property real labelHoverPulseLift: 0.025
   property real labelAnimatedPixelSize: labelPixelSize
-  property bool hovered: false
+  property real hoverPulseAmount: 0
+  property real hoverRevealAmount: 0
+  readonly property real labelAnimatedScale: labelHoverPulse ? 1 + hoverRevealAmount * ((labelHoverScale - 1) + hoverPulseAmount * labelHoverPulseLift) : 1
+  readonly property real hoverGlowOpacity: labelHoverPulse && !sweepActive ? hoverRevealAmount * (0.34 + hoverPulseAmount * 0.22) : 0
+  readonly property real hoverHighlightOpacity: labelHoverPulse && !sweepActive ? hoverRevealAmount * 0.035 : 0
+  readonly property bool hovered: clickArea.containsMouse
   property bool sweepActive: false
   property color sweepColor: accent
   property real sweepPosition: -0.35
   property var tooltipHost: null
 
-  onLabelPixelSizeChanged: labelAnimatedPixelSize = hovered && labelHoverPulse ? labelPixelSize * labelHoverScale : labelPixelSize
+  onLabelPixelSizeChanged: labelAnimatedPixelSize = labelPixelSize
 
   width: Math.max(minButtonWidth, content.implicitWidth + contentHorizontalPadding)
   height: compact ? 24 : 32
@@ -42,8 +50,15 @@ Rectangle {
   border.width: 0
   clip: true
 
+  Behavior on hoverRevealAmount {
+    NumberAnimation {
+      duration: 180
+      easing.type: Easing.OutCubic
+    }
+  }
+
   function showTooltip() {
-    if (tooltipHost) {
+    if (tooltipHost && tooltip !== "") {
       tooltipHost.showFor(root, tooltip, accent, foreground)
     }
   }
@@ -82,6 +97,12 @@ Rectangle {
   }
 
   Rectangle {
+    anchors.fill: parent
+    color: root.accent
+    opacity: root.hoverHighlightOpacity
+  }
+
+  Rectangle {
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.bottom: parent.bottom
@@ -100,7 +121,7 @@ Rectangle {
       id: image
       anchors.verticalCenter: parent.verticalCenter
       visible: root.leadingImageSource !== ""
-      source: root.leadingImageSource
+      source: root.leadingImageDisplaySource
       width: root.leadingImageSize
       height: root.leadingImageSize
       sourceSize.width: width
@@ -111,16 +132,90 @@ Rectangle {
       mipmap: true
     }
 
-    Text {
-      id: label
+    Item {
+      id: labelSlot
       anchors.verticalCenter: parent.verticalCenter
       visible: !root.sweepActive
-      color: root.baseTextColor()
-      font.family: "BlexMono Nerd Font Propo"
-      font.pixelSize: Math.round(root.labelAnimatedPixelSize)
-      font.weight: root.labelFontWeight
-      elide: Text.ElideRight
-      maximumLineCount: 1
+      implicitWidth: label.implicitWidth
+      implicitHeight: label.implicitHeight
+
+      Text {
+        id: label
+        anchors.centerIn: parent
+        z: 2
+        color: root.baseTextColor()
+        font.family: "BlexMono Nerd Font Propo"
+        font.pixelSize: Math.round(root.labelAnimatedPixelSize)
+        font.weight: root.labelFontWeight
+        scale: root.labelAnimatedScale
+        transformOrigin: Item.Center
+        elide: Text.ElideRight
+        maximumLineCount: 1
+      }
+
+      Text {
+        anchors.centerIn: label
+        anchors.horizontalCenterOffset: -1
+        z: 1
+        text: label.text
+        color: root.accent
+        opacity: root.hoverGlowOpacity
+        font.family: label.font.family
+        font.pixelSize: label.font.pixelSize
+        font.weight: label.font.weight
+        scale: root.labelAnimatedScale + 0.08
+        transformOrigin: Item.Center
+        elide: Text.ElideRight
+        maximumLineCount: 1
+      }
+
+      Text {
+        anchors.centerIn: label
+        anchors.horizontalCenterOffset: 1
+        z: 1
+        text: label.text
+        color: root.accent
+        opacity: root.hoverGlowOpacity
+        font.family: label.font.family
+        font.pixelSize: label.font.pixelSize
+        font.weight: label.font.weight
+        scale: root.labelAnimatedScale + 0.08
+        transformOrigin: Item.Center
+        elide: Text.ElideRight
+        maximumLineCount: 1
+      }
+
+      Text {
+        anchors.centerIn: label
+        anchors.verticalCenterOffset: -1
+        z: 1
+        text: label.text
+        color: root.accent
+        opacity: root.hoverGlowOpacity
+        font.family: label.font.family
+        font.pixelSize: label.font.pixelSize
+        font.weight: label.font.weight
+        scale: root.labelAnimatedScale + 0.08
+        transformOrigin: Item.Center
+        elide: Text.ElideRight
+        maximumLineCount: 1
+      }
+
+      Text {
+        anchors.centerIn: label
+        anchors.verticalCenterOffset: 1
+        z: 1
+        text: label.text
+        color: root.accent
+        opacity: root.hoverGlowOpacity
+        font.family: label.font.family
+        font.pixelSize: label.font.pixelSize
+        font.weight: label.font.weight
+        scale: root.labelAnimatedScale + 0.08
+        transformOrigin: Item.Center
+        elide: Text.ElideRight
+        maximumLineCount: 1
+      }
     }
 
     Row {
@@ -146,29 +241,20 @@ Rectangle {
     }
   }
 
-  MouseArea {
+  LacunaStateLayer {
     id: clickArea
 
-    anchors.fill: parent
-    acceptedButtons: Qt.LeftButton | Qt.RightButton
-    hoverEnabled: true
-    cursorShape: Qt.PointingHandCursor
-    onEntered: {
-      root.hovered = true
-      root.labelAnimatedPixelSize = root.labelPixelSize * root.labelHoverScale
-      root.showTooltip()
+    stateColor: root.accent
+    showFill: false
+    onContainsMouseChanged: {
+      root.hoverRevealAmount = containsMouse ? 1 : 0
+      if (containsMouse) root.showTooltip()
+      else root.hideTooltip()
     }
-    onExited: {
-      root.hovered = false
-      root.labelAnimatedPixelSize = root.labelPixelSize
-      root.hideTooltip()
-    }
-    onClicked: function(mouse) {
-      if (mouse.button === Qt.RightButton) root.secondaryTriggered()
-      else root.triggered()
-    }
-    onWheel: function(wheel) {
-      root.scrolled(wheel.angleDelta.y)
+    onTriggered: root.triggered()
+    onSecondaryClicked: root.secondaryTriggered()
+    onScrolled: function(delta) {
+      root.scrolled(delta)
     }
   }
 
@@ -178,23 +264,23 @@ Rectangle {
 
     NumberAnimation {
       target: root
-      property: "labelAnimatedPixelSize"
-      from: root.labelPixelSize * root.labelHoverScale
-      to: root.labelPixelSize * (root.labelHoverScale + root.labelHoverPulseLift)
-      duration: 760
+      property: "hoverPulseAmount"
+      from: 0
+      to: 1
+      duration: 900
       easing.type: Easing.InOutSine
     }
 
     NumberAnimation {
       target: root
-      property: "labelAnimatedPixelSize"
-      from: root.labelPixelSize * (root.labelHoverScale + root.labelHoverPulseLift)
-      to: root.labelPixelSize * root.labelHoverScale
-      duration: 760
+      property: "hoverPulseAmount"
+      from: 1
+      to: 0
+      duration: 900
       easing.type: Easing.InOutSine
     }
 
-    onStopped: root.labelAnimatedPixelSize = root.hovered ? root.labelPixelSize * root.labelHoverScale : root.labelPixelSize
+    onStopped: root.hoverPulseAmount = 0
   }
 
 }

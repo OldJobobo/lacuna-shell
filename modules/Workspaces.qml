@@ -12,7 +12,6 @@ Row {
   property color emptyColor: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.42)
   property color urgentColor: "#bf616a"
   property bool compact: false
-  property var tooltipHost: null
   property int workspaceSerial: 0
 
   spacing: 4
@@ -49,13 +48,6 @@ Row {
     if (activeWorkspace === id) return accent
     if (workspaceOccupied(id)) return occupiedColor
     return emptyColor
-  }
-
-  function workspaceTooltip(id) {
-    var workspace = workspaceFor(id)
-    var state = activeWorkspace === id ? "active" : workspaceOccupied(id) ? "occupied" : "empty"
-    var windows = workspaceWindowCount(workspace)
-    return "Workspace " + id + "\n" + state + (windows > 0 ? "\n" + windows + " window" + (windows === 1 ? "" : "s") : "")
   }
 
   function switchToWorkspace(workspace) {
@@ -117,10 +109,9 @@ Row {
       background: root.background
       accent: root.workspaceColor(workspaceId)
       accentText: workspaceOccupied && !workspaceActive
-      tooltip: root.workspaceTooltip(workspaceId)
-      tooltipHost: root.tooltipHost
       labelHoverPulse: true
-      labelHoverScale: root.compact ? 1.28 : 1.35
+      labelHoverScale: root.compact ? 1.16 : 1.18
+      labelHoverPulseLift: 0.045
       active: workspaceActive
       onTriggered: root.switchToWorkspace(workspaceId)
     }
