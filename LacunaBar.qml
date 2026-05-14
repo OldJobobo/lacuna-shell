@@ -5,6 +5,10 @@ import "modules"
 import "services"
 
 Scope {
+  id: root
+
+  property var menuState: null
+
   Theme {
     id: theme
   }
@@ -100,7 +104,7 @@ Scope {
               foreground: theme.foreground
               background: theme.background
               compact: panel.dense
-              onTriggered: commands.run("omarchy menu")
+              onTriggered: root.menuState ? root.menuState.toggle() : commands.run("omarchy menu")
             }
 
             Workspaces {
@@ -519,7 +523,7 @@ Scope {
                 foreground: theme.foreground
                 background: theme.background
                 compact: compactState.compact
-                onTriggered: commands.run("omarchy menu")
+                onTriggered: root.menuState ? root.menuState.toggle() : commands.run("omarchy menu")
               }
 
               Workspaces {

@@ -1,5 +1,17 @@
 import Quickshell
+import "modules"
+import "services"
 
 Scope {
-  LacunaBar {}
+  LacunaMenuState {
+    id: lacunaMenuState
+  }
+
+  LacunaBar {
+    menuState: lacunaMenuState
+  }
+
+  LacunaMenu {
+    menuState: lacunaMenuState
+  }
 }
