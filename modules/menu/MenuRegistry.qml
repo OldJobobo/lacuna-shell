@@ -79,6 +79,7 @@ Item {
       item("header", "", "Lacuna", "", "", "", "lacuna", "normal", "section", false, "lacuna"),
       item("item", "󱥸", "Control surface", "Shell settings and preferences", "lacuna", "", "lacuna", "primary", "featured", false, "lacuna"),
       item("item", root.sidebarCollapsed ? "󰍽" : "󰍾", root.sidebarCollapsed ? "Expand sidebar" : "Collapse to icon rail", root.sidebarCollapsed ? "Show the full utility sidebar" : "Shrink into a side icon bar", "", "", "lacuna", "primary", "row", false, "lacuna", "toggle-sidebar-rail"),
+      item("item", root.sidebarExclusive ? "󰹑" : "󰹐", root.sidebarExclusive ? "Use overlay mode" : "Reserve screen space", root.sidebarExclusive ? "Let the sidebar float over windows" : "Make windows leave room for the sidebar", "", "", "lacuna", "primary", "row", false, "lacuna", "toggle-sidebar-mode"),
       item("header", "", "Launch", "", "", "", "nav"),
       item("item", "󰀻", "Apps", "Open Walker app launcher", "", "walker -p 'Launch…'", "nav", "primary", "row"),
       item("item", "", "Terminal", "Open a terminal", "", "xdg-terminal-exec", "nav"),

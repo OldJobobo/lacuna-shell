@@ -110,10 +110,10 @@ Scope {
     visible: root.panelVisible
     color: "transparent"
     implicitWidth: root.panelWidth + root.surfaceRightInset
-    exclusiveZone: 0
-    exclusionMode: ExclusionMode.Ignore
+    exclusiveZone: sidebarState.exclusive && root.menuState.open ? root.panelWidth : 0
+    exclusionMode: sidebarState.exclusive ? ExclusionMode.Normal : ExclusionMode.Ignore
     WlrLayershell.namespace: "lacuna-menu"
-    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.layer: sidebarState.exclusive ? WlrLayer.Top : WlrLayer.Overlay
 
     anchors {
       top: true
