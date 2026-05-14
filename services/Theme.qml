@@ -12,7 +12,7 @@ Item {
   property string themeTitle: formatTitle(themeName)
   property color foreground: color("foreground")
   property color background: color("background")
-  property color panel: withAlpha(background, 0.84)
+  property color panel: withAlpha(background, 1)
   property color voidColor: withAlpha(background, 0.18)
   property color border: withAlpha(foreground, 0.18)
   property color muted: withAlpha(foreground, 0.48)

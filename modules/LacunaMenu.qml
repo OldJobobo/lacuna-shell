@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
+import QtQuick.Shapes
 import "../services"
 
 Scope {
@@ -15,6 +16,8 @@ Scope {
   property string lacunaPath: Quickshell.env("LACUNA_PATH") || Quickshell.env("PWD")
   property int panelWidth: 340
   property int shadowExtent: 14
+  readonly property int joinRadius: 8
+  readonly property int bodyRightInset: joinRadius
   property bool panelVisible: menuState.open
 
   Theme {
@@ -149,13 +152,6 @@ Scope {
       top: true
       bottom: true
       left: true
-      right: true
-    }
-
-    MouseArea {
-      anchors.fill: parent
-      enabled: root.menuState.open
-      onClicked: root.menuState.close()
     }
 
     Rectangle {
@@ -165,8 +161,32 @@ Scope {
       anchors.bottom: parent.bottom
       width: root.panelWidth
       x: root.menuState.open ? 0 : -root.panelWidth
-      color: root.panelColor
+      color: "transparent"
       clip: true
+
+      Shape {
+        anchors.fill: parent
+        asynchronous: true
+        containsMode: Shape.FillContains
+
+        ShapePath {
+          fillColor: root.panelColor
+          strokeWidth: 0
+          startX: 0
+          startY: 0
+
+          PathLine { x: surface.width; y: 0 }
+          PathQuad {
+            x: surface.width - root.joinRadius
+            y: root.joinRadius
+            controlX: surface.width - root.joinRadius
+            controlY: 0
+          }
+          PathLine { x: surface.width - root.joinRadius; y: surface.height }
+          PathLine { x: 0; y: surface.height }
+          PathLine { x: 0; y: 0 }
+        }
+      }
 
       MouseArea {
         anchors.fill: parent
@@ -185,7 +205,7 @@ Scope {
       Column {
         anchors.fill: parent
         anchors.leftMargin: 14
-        anchors.rightMargin: 14
+        anchors.rightMargin: 14 + root.bodyRightInset
         anchors.topMargin: 16
         anchors.bottomMargin: 16
         spacing: 10
@@ -268,7 +288,7 @@ Scope {
       anchors.top: parent.top
       anchors.bottom: parent.bottom
       width: root.shadowExtent
-      x: surface.x + surface.width
+      x: surface.x + surface.width - root.bodyRightInset
       visible: root.menuState.open
       gradient: Gradient {
         orientation: Gradient.Horizontal

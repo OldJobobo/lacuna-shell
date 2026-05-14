@@ -111,7 +111,11 @@ Scope {
               foreground: theme.foreground
               background: theme.background
               accent: theme.color("color14")
+              occupiedColor: theme.color("color10")
+              emptyColor: theme.muted
+              urgentColor: theme.color("color9")
               compact: panel.dense
+              tooltipHost: tooltips
               commandRunner: commands
             }
           }
@@ -530,7 +534,11 @@ Scope {
                 foreground: theme.foreground
                 background: theme.background
                 accent: theme.color("color14")
+                occupiedColor: theme.color("color10")
+                emptyColor: theme.muted
+                urgentColor: theme.color("color9")
                 compact: compactState.compact
+                tooltipHost: tooltips
                 commandRunner: commands
               }
             }

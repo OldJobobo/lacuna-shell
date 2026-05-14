@@ -24,6 +24,7 @@ Rectangle {
   property int labelFontWeight: active ? Font.DemiBold : Font.Normal
   property bool labelHoverPulse: false
   property real labelHoverScale: 1.18
+  property real labelHoverPulseLift: 0.035
   property real labelAnimatedPixelSize: labelPixelSize
   property bool hovered: false
   property bool sweepActive: false
@@ -179,17 +180,17 @@ Rectangle {
       target: root
       property: "labelAnimatedPixelSize"
       from: root.labelPixelSize * root.labelHoverScale
-      to: root.labelPixelSize * (root.labelHoverScale + 0.08)
-      duration: 420
+      to: root.labelPixelSize * (root.labelHoverScale + root.labelHoverPulseLift)
+      duration: 760
       easing.type: Easing.InOutSine
     }
 
     NumberAnimation {
       target: root
       property: "labelAnimatedPixelSize"
-      from: root.labelPixelSize * (root.labelHoverScale + 0.08)
+      from: root.labelPixelSize * (root.labelHoverScale + root.labelHoverPulseLift)
       to: root.labelPixelSize * root.labelHoverScale
-      duration: 520
+      duration: 760
       easing.type: Easing.InOutSine
     }
 
