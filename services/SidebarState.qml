@@ -39,7 +39,7 @@ Item {
   }
 
   function save() {
-    saveProc.command = ["bash", "-lc", "mkdir -p " + quote(stateDir) + "; printf '%s\\n%s\\n%s\\n' " + quote(exclusive ? "exclusive" : "overlay") + " " + quote(collapsed ? "rail" : "full") + " " + quote(cornerPieces ? "corners" : "flat") + " > " + quote(stateFile)]
+    saveProc.command = ["bash", "-lc", "mkdir -p " + quote(stateDir) + "; { echo " + quote(exclusive ? "exclusive" : "overlay") + "; echo " + quote(collapsed ? "rail" : "full") + "; echo " + quote(cornerPieces ? "corners" : "flat") + "; } > " + quote(stateFile)]
     saveProc.running = true
   }
 
@@ -52,7 +52,7 @@ Item {
   Process {
     id: loadProc
     property string output: ""
-    command: ["bash", "-lc", "cat " + root.quote(root.stateFile) + " 2>/dev/null || printf 'exclusive\\nfull\\ncorners\\n'"]
+    command: ["bash", "-lc", "cat " + root.quote(root.stateFile) + " 2>/dev/null || { echo exclusive; echo full; echo corners; }"]
 
     stdout: SplitParser {
       onRead: function(data) {

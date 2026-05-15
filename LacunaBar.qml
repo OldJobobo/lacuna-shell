@@ -134,7 +134,9 @@ Scope {
             spacing: panel.dense ? 0 : 2
 
             LacunaButton {
-              text: "󱥸"
+              text: "\ue900"
+              labelFontFamily: "omarchy"
+              labelPixelSize: panel.dense ? 13 : 16
               minButtonWidth: panel.dense ? 24 : 32
               contentHorizontalPadding: 0
               accent: theme.color("color14")
@@ -542,7 +544,9 @@ Scope {
               spacing: compactState.compact ? 0 : 2
 
               LacunaButton {
-                text: "󱥸"
+                text: "\ue900"
+                labelFontFamily: "omarchy"
+                labelPixelSize: compactState.compact ? 13 : 16
                 minButtonWidth: compactState.compact ? 24 : 32
                 contentHorizontalPadding: 0
                 accent: theme.color("color14")

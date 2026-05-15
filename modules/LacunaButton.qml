@@ -24,6 +24,7 @@ LacunaRect {
   property int contentVerticalOffset: 0
   property int contentHorizontalPadding: compact ? 8 : 16
   property int labelPixelSize: compact ? 11 : 12
+  property string labelFontFamily: "BlexMono Nerd Font Propo"
   property int labelFontWeight: active ? Font.DemiBold : Font.Normal
   property bool labelHoverPulse: false
   property real labelHoverScale: 1.08
@@ -144,7 +145,7 @@ LacunaRect {
         anchors.centerIn: parent
         z: 2
         color: root.baseTextColor()
-        font.family: "BlexMono Nerd Font Propo"
+        font.family: root.labelFontFamily
         font.pixelSize: Math.round(root.labelAnimatedPixelSize)
         font.weight: root.labelFontWeight
         scale: root.labelAnimatedScale

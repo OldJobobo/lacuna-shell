@@ -55,6 +55,10 @@ Item {
     return "foot --app-id=org.omarchy.terminal --title=" + shellQuote(title || "Lacuna") + " -e bash -lc " + shellQuote(terminalBody)
   }
 
+  function openTerminalCommand() {
+    return "foot --app-id=org.omarchy.terminal --title=" + shellQuote("Terminal")
+  }
+
   function updateLacunaCommand() {
     return terminalCommand(shellQuote(root.lacunaPath + "/scripts/lacuna-update.sh"), "Lacuna Update", true)
   }
@@ -167,7 +171,7 @@ Item {
       item("item", "󰀻", "Apps", "Browse categorized launchers", "apps", "", "nav", "primary", "row", false, "apps"),
       item("item", "", "Customize", "Theme, background, and wallpaper tools", "customize", "", "shell", "primary", "row", false, "customize"),
       item("item", "", "System", "Lock, logout, restart, shutdown", "system", "", "session", "primary", "row", false, "session"),
-      item("item", "", "Terminal", "Open a terminal", "", "xdg-terminal-exec", "nav", "normal", "row", false, "launch"),
+      item("item", "", "Terminal", "Open a terminal", "", openTerminalCommand(), "nav", "normal", "row", false, "launch"),
       item("item", "󰈹", "Browser", "Launch browser", "", "omarchy launch browser", "nav", "normal", "row", false, "launch")
     ]
   }
@@ -260,7 +264,7 @@ Item {
       item("item", "", "Customize", "Theme, background, and wallpaper tools", "customize", "", "shell", "primary", "featured", false, "customize"),
       item("item", "", "System", "Lock, logout, restart, shutdown", "system", "", "session", "primary", "featured", false, "session"),
       item("header", "", "Launch", "", "", "", "nav"),
-      item("item", "", "Terminal", "Open a terminal", "", "xdg-terminal-exec", "nav", "primary", "row"),
+      item("item", "", "Terminal", "Open a terminal", "", openTerminalCommand(), "nav", "primary", "row"),
       item("item", "󰈹", "Browser", "Launch browser", "", "omarchy launch browser", "nav", "primary", "row"),
       item("header", "", "System Tools", "", "", "", "session"),
       item("item", "󰖩", "Wi-Fi", "Open Wi-Fi controls", "", "hyprctl dispatch 'hl.dsp.exec_cmd([[omarchy launch wifi]])'", "session"),

@@ -18,7 +18,7 @@ Item {
 
   function toggle() {
     compact = !compact
-    saveProc.command = ["bash", "-lc", "mkdir -p " + quote(stateDir) + "; printf '%s\\n' " + quote(compact ? "compact" : "normal") + " > " + quote(stateFile)]
+    saveProc.command = ["bash", "-lc", "mkdir -p " + quote(stateDir) + "; echo " + quote(compact ? "compact" : "normal") + " > " + quote(stateFile)]
     saveProc.running = true
   }
 
@@ -31,7 +31,7 @@ Item {
   Process {
     id: loadProc
     property string output: ""
-    command: ["bash", "-lc", "cat " + root.quote(root.stateFile) + " 2>/dev/null || printf 'normal\\n'"]
+    command: ["bash", "-lc", "cat " + root.quote(root.stateFile) + " 2>/dev/null || echo normal"]
 
     stdout: SplitParser {
       onRead: function(data) {

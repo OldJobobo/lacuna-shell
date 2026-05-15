@@ -43,6 +43,16 @@ Column {
     return root.registry.railItems()
   }
 
+  function iconShape(entry) {
+    if (!entry || !entry.label) return "apps"
+    if (entry.label === "Lacuna") return "lacuna"
+    if (entry.label === "Customize") return "customize"
+    if (entry.label === "System") return "system"
+    if (entry.label === "Terminal") return "terminal"
+    if (entry.label === "Browser") return "browser"
+    return "apps"
+  }
+
   function showTooltip(item, entry) {
     if (!item || !entry || !entry.label) return
 
@@ -79,16 +89,12 @@ Column {
   Repeater {
     model: root.railItems()
 
-    LacunaIconButton {
-      icon: modelData.icon
-      iconSource: modelData.iconSource || ""
-      foreground: root.foreground
-      muted: root.muted
-      accent: root.toneAccent(modelData.tone)
-      hoverAccent: root.toneAccent(modelData.tone)
+    MenuRailButton {
+      shape: root.iconShape(modelData)
+      muted: root.accent
+      hoverAccent: root.accent
       buttonSize: root.railWidth
-      iconSize: root.compact ? (modelData.priority === "primary" ? 15 : 13) : (modelData.priority === "primary" ? 17 : 15)
-      fontFamily: root.bodyFontFamily
+      iconSize: root.compact ? 16 : 18
       onHoveredChanged: if (hovered) root.showTooltip(this, modelData)
                       else root.hideTooltip(this)
       onTriggered: root.activated(modelData)

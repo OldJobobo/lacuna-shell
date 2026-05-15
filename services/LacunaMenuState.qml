@@ -25,12 +25,12 @@ Item {
 
   function saveCommand() {
     var lines = [open ? "open" : "closed"].concat(stack)
-    var args = []
+    var commands = []
     for (var i = 0; i < lines.length; i++) {
-      args.push(quote(lines[i]))
+      commands.push("echo " + quote(lines[i]))
     }
 
-    return "mkdir -p " + quote(stateDir) + "; printf '%s\\n' " + args.join(" ") + " > " + quote(stateFile)
+    return "mkdir -p " + quote(stateDir) + "; { " + commands.join("; ") + "; } > " + quote(stateFile)
   }
 
   function quote(value) {
@@ -74,7 +74,7 @@ Item {
   Process {
     id: loadProc
     property string output: ""
-    command: ["bash", "-lc", "cat " + root.quote(root.stateFile) + " 2>/dev/null || printf 'closed\\nmain\\n'"]
+    command: ["bash", "-lc", "cat " + root.quote(root.stateFile) + " 2>/dev/null || { echo closed; echo main; }"]
 
     stdout: SplitParser {
       onRead: function(data) {
