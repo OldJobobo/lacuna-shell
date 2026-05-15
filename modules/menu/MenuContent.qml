@@ -12,6 +12,7 @@ Column {
   property bool open: true
   property bool compact: false
   property string currentView: menuState.currentView
+  property string version: ""
   property real viewProgress: 1
   property string themeTitle: ""
   property color foreground: "#d8dee9"
@@ -66,7 +67,8 @@ Column {
   MenuHeader {
     width: parent.width
     title: root.registry.titleFor(root.menuState.currentView)
-    subtitle: (root.themeTitle !== "" ? root.themeTitle : "Quickshell") + " / utility sidebar"
+    version: root.version
+    subtitle: ""
     canGoBack: root.menuState.stack.length > 1
     foreground: root.foreground
     muted: root.muted

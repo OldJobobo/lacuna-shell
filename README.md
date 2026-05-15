@@ -4,6 +4,8 @@ Lacuna is a Quickshell bar experiment for Omarchy.
 
 It borrows `omabar-v2`'s proven script contract and layout, then uses Lacuna as a quieter design influence: slim negative space, muted pauses between clusters, and less visual mass around the same information rhythm.
 
+Current stage: `0.0.1-alpha.1`. Lacuna uses semantic prerelease versioning while the shell is still stabilizing: `MAJOR.MINOR.PATCH-alpha.N`.
+
 ## Run
 
 ```bash

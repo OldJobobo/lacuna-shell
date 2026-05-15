@@ -12,7 +12,7 @@ Item {
   property string themeTitle: formatTitle(themeName)
   property color foreground: color("foreground")
   property color background: color("background")
-  property color panel: withAlpha(background, 1)
+  property color panel: brighten(background, 0.1)
   property color voidColor: withAlpha(background, 0.18)
   property color border: withAlpha(foreground, 0.18)
   property color muted: withAlpha(foreground, 0.48)
@@ -20,6 +20,11 @@ Item {
 
   function withAlpha(value, alpha) {
     return Qt.rgba(value.r, value.g, value.b, alpha)
+  }
+
+  function brighten(value, amount) {
+    var factor = 1 + amount
+    return Qt.rgba(Math.min(value.r * factor, 1), Math.min(value.g * factor, 1), Math.min(value.b * factor, 1), value.a)
   }
 
   function color(name) {

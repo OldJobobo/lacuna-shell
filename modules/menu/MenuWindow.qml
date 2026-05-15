@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
 import "../../services"
@@ -8,6 +9,7 @@ Scope {
   id: root
 
   required property var menuState
+  property string lacunaPath: Quickshell.env("LACUNA_PATH") || Quickshell.env("PWD")
   property var sharedCompactState: null
   readonly property var compactState: sharedCompactState || localCompactState
   property color foreground: menuTheme.foreground
@@ -19,8 +21,9 @@ Scope {
   property color dangerAccent: menuTheme.color("color9")
   property color navAccent: menuTheme.soft
   property color muted: menuTheme.muted
+  property string version: ""
   property bool compact: compactState.compact
-  property int fullPanelWidth: compact ? 300 : 340
+  property int fullPanelWidth: compact ? 270 : 310
   property int railButtonWidth: barHeight
   property int railPanelWidth: railButtonWidth + (compact ? 6 : 10)
   property int panelWidth: sidebarState.collapsed ? railPanelWidth : fullPanelWidth
@@ -28,7 +31,7 @@ Scope {
   property int joinRadius: compact ? 14 : 18
   property int connectorOverlap: compact ? 25 : 33
   property int bodyRightInset: joinRadius
-  property int surfaceRightInset: sidebarState.collapsed ? 0 : bodyRightInset
+  property int surfaceRightInset: bodyRightInset
   // In exclusive mode the compositor pushes our window down by the bar's
   // exclusive zone, so the surface top IS the bar bottom (offset 0).
   // In overlay mode we sit on top of the bar from y=0, so the bar bottom
@@ -73,9 +76,11 @@ Scope {
     }
 
     if (entry.command) {
-      commands.run(entry.command)
+      commands.run(menuState.saveCommand() + "; " + entry.command)
     }
   }
+
+  Component.onCompleted: versionFile.reload()
 
   CompactState {
     id: localCompactState
@@ -91,6 +96,19 @@ Scope {
 
   Theme {
     id: menuTheme
+  }
+
+  FileView {
+    id: versionFile
+
+    path: root.lacunaPath + "/VERSION"
+    watchChanges: true
+    printErrors: false
+    onLoaded: {
+      var raw = text().trim()
+      root.version = raw === "" ? "" : "v" + raw.replace(/^v/, "")
+    }
+    onFileChanged: reload()
   }
 
   MenuRegistry {
@@ -164,6 +182,7 @@ Scope {
         open: root.menuState.open
         menuState: root.menuState
         registry: registry
+        version: root.version
         themeTitle: menuTheme.themeTitle
         foreground: root.foreground
         background: root.background

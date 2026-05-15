@@ -28,9 +28,11 @@ Item {
   }
 
   function titleFor(view) {
+    if (view === "main") return "Lacuna"
     if (view === "lacuna") return "Lacuna"
-    if (view === "lacuna-shell") return "Shell Settings"
-    if (view === "lacuna-preferences") return "Preferences"
+    if (view === "customize") return "Customize"
+    if (view === "lacuna-shell") return "Runtime"
+    if (view === "lacuna-preferences") return "Layout"
     if (view === "system") return "System"
     if (view === "apps") return "Apps"
     if (view === "apps-all") return "All Apps"
@@ -40,6 +42,40 @@ Item {
 
   function shellQuote(value) {
     return "'" + String(value).replace(/'/g, "'\\''") + "'"
+  }
+
+  function terminalCommand(command, title, holdOpen) {
+    var terminalBody = command
+    if (holdOpen) {
+      terminalBody = command + "; status=$?; printf '\\nCommand exited with status %s. Press Enter to close...' \"$status\"; read -r _; exit \"$status\""
+    }
+    return "foot --app-id=org.omarchy.terminal --title=" + shellQuote(title || "Lacuna") + " -e bash -lc " + shellQuote(terminalBody)
+  }
+
+  function updateLacunaCommand() {
+    return terminalCommand(shellQuote(root.lacunaPath + "/scripts/lacuna-update.sh"), "Lacuna Update", true)
+  }
+
+  function restartLacunaCommand() {
+    return "quickshell kill -p " + shellQuote(root.lacunaPath + "/shell.qml") + " || true; setsid " + shellQuote(root.lacunaPath + "/run.sh") + " >/tmp/lacuna-quickshell.log 2>&1 &"
+  }
+
+  function openLogCommand() {
+    return terminalCommand("less /tmp/lacuna-quickshell.log", "Lacuna Log", false)
+  }
+
+  function resetImageSelectorCommand() {
+    var selectorPath = (Quickshell.env("HOME") || "") + "/.local/share/omarchy/default/quickshell/background-switcher.qml"
+    var socketPath = (Quickshell.env("XDG_RUNTIME_DIR") || ("/run/user/" + Quickshell.env("UID"))) + "/omarchy-image-selector.sock"
+    return "quickshell kill -p " + shellQuote(selectorPath) + " >/dev/null 2>&1 || true; rm -f " + shellQuote(socketPath)
+  }
+
+  function switchThemeCommand() {
+    return resetImageSelectorCommand() + "; theme=$(omarchy theme switcher); [ -n \"$theme\" ] && omarchy theme set \"$theme\""
+  }
+
+  function switchBackgroundCommand() {
+    return resetImageSelectorCommand() + "; background=$(omarchy theme bg-switcher); [ -n \"$background\" ] && omarchy theme bg set \"$background\""
   }
 
   function categories() {
@@ -122,6 +158,17 @@ Item {
     return rows
   }
 
+  function railItems() {
+    return [
+      item("item", "󱥸", "Lacuna", "Runtime and layout controls", "lacuna", "", "lacuna", "primary", "row", false, "lacuna"),
+      item("item", "󰀻", "Apps", "Browse categorized launchers", "apps", "", "nav", "primary", "row", false, "apps"),
+      item("item", "", "Customize", "Theme, background, and wallpaper tools", "customize", "", "shell", "primary", "row", false, "customize"),
+      item("item", "", "System", "Lock, logout, restart, shutdown", "system", "", "session", "primary", "row", false, "session"),
+      item("item", "", "Terminal", "Open a terminal", "", "xdg-terminal-exec", "nav", "normal", "row", false, "launch"),
+      item("item", "󰈹", "Browser", "Launch browser", "", "omarchy launch browser", "nav", "normal", "row", false, "launch")
+    ]
+  }
+
   function itemsFor(view) {
     if (view === "apps") {
       var rows = [item("header", "", "Categories", "", "", "", "lacuna", "normal", "section", false, "apps")]
@@ -129,7 +176,7 @@ Item {
       for (var c = 0; c < cats.length; c++) {
         var meta = cats[c]
         if (appCount(meta.id) > 0 || meta.id === "games") {
-          rows.push(item("item", meta.icon, categoryLabel(meta), "", "apps-" + meta.id, "", meta.tone, "primary", meta.id === "games" ? "featured" : "row", false, "apps"))
+          rows.push(item("item", meta.icon, categoryLabel(meta), "", "apps-" + meta.id, "", meta.tone, "primary", "row", false, "apps"))
         }
       }
       rows.push(item("header", "", "Fallback", "", "", "", "shell"))
@@ -149,11 +196,11 @@ Item {
 
     if (view === "lacuna") {
       return [
-        item("header", "", "Control", "", "", "", "lacuna", "normal", "section", false, "lacuna"),
-        item("item", "󰒓", "Shell settings", "Runtime actions and diagnostics", "lacuna-shell", "", "lacuna", "primary", "featured", false, "lacuna"),
-        item("item", "", "Preferences", "Density, modules, and surface behavior", "lacuna-preferences", "", "lacuna", "primary", "featured", false, "lacuna"),
+        item("header", "", "Settings", "", "", "", "lacuna", "normal", "section", false, "lacuna"),
+        item("item", "󰒓", "Runtime", "Commands, logs, and diagnostics", "lacuna-shell", "", "lacuna", "primary", "row", false, "lacuna"),
+        item("item", "", "Layout", "Density, sidebar, and surface behavior", "lacuna-preferences", "", "lacuna", "primary", "row", false, "lacuna"),
         item("header", "", "Source", "", "", "", "shell"),
-        item("item", "󰑐", "Restart Lacuna", "Reload this Quickshell surface", "", "quickshell kill -p " + root.lacunaPath + "/shell.qml; setsid " + root.lacunaPath + "/run.sh >/tmp/lacuna-quickshell.log 2>&1 &", "shell"),
+        item("item", "󰑐", "Restart Lacuna", "Reload this Quickshell surface", "", restartLacunaCommand(), "shell"),
         item("item", "", "Open source", "Edit the local Lacuna project", "", "xdg-terminal-exec --app-id=org.omarchy.terminal bash -lc 'cd " + root.lacunaPath + " && ${EDITOR:-nvim} .'", "shell")
       ]
     }
@@ -161,19 +208,32 @@ Item {
     if (view === "lacuna-shell") {
       return [
         item("header", "", "Runtime", "", "", "", "shell", "normal", "section", false, "shell"),
-        item("item", "󰑐", "Restart shell", "Restart Lacuna Quickshell", "", "quickshell kill -p " + root.lacunaPath + "/shell.qml; setsid " + root.lacunaPath + "/run.sh >/tmp/lacuna-quickshell.log 2>&1 &", "shell", "primary", "featured", false, "shell"),
-        item("item", "󰌾", "Open log", "View the current Lacuna log", "", "xdg-terminal-exec --app-id=org.omarchy.terminal less /tmp/lacuna-quickshell.log", "shell"),
+        item("item", "󰑐", "Restart shell", "Restart Lacuna Quickshell", "", restartLacunaCommand(), "shell", "primary", "row", false, "shell"),
+        item("item", "󰌾", "Open log", "View the current Lacuna log", "", openLogCommand(), "shell"),
         item("item", "", "Edit shell", "Open shell.qml", "", "omarchy-launch-editor " + root.lacunaPath + "/shell.qml", "lacuna")
       ]
     }
 
     if (view === "lacuna-preferences") {
       return [
-        item("header", "", "Preferences", "", "", "", "lacuna", "normal", "section", false, "lacuna"),
-        item("item", "󰙵", "Toggle bar density", "Compact and spacing controls", "", "", "lacuna", "primary", "featured", false, "lacuna", "toggle-bar-density"),
-        item("item", root.sidebarCollapsed ? "󰍽" : "󰍾", root.sidebarCollapsed ? "Expand sidebar" : "Collapse to icon rail", "", "", "", "lacuna", "primary", "row", false, "lacuna", "toggle-sidebar-rail"),
-        item("item", root.sidebarExclusive ? "󰹑" : "󰹐", root.sidebarExclusive ? "Use overlay mode" : "Reserve screen space", "", "", "", "lacuna", "primary", "row", false, "lacuna", "toggle-sidebar-mode"),
+        item("header", "", "Layout", "", "", "", "lacuna", "normal", "section", false, "lacuna"),
+        item("item", "󰙵", "Bar Density", "Toggle compact bar spacing", "", "", "lacuna", "normal", "row", false, "lacuna", "toggle-bar-density"),
+        item("item", root.sidebarCollapsed ? "󰍽" : "󰍾", root.sidebarCollapsed ? "Full Sidebar" : "Icon Rail", root.sidebarCollapsed ? "Expand the sidebar surface" : "Collapse to the icon rail", "", "", "lacuna", "normal", "row", false, "lacuna", "toggle-sidebar-rail"),
+        item("item", root.sidebarExclusive ? "󰹑" : "󰹐", root.sidebarExclusive ? "Sidebar Overlay" : "Sidebar Docked", root.sidebarExclusive ? "Let the sidebar float over windows" : "Reserve screen space for the sidebar", "", "", "lacuna", "normal", "row", false, "lacuna", "toggle-sidebar-mode"),
         item("item", "󰑐", "Reload app catalog", "Rescan desktop launchers", "", "", "shell", "normal", "row", false, "apps", "reload-apps")
+      ]
+    }
+
+    if (view === "customize") {
+      return [
+        item("header", "", "Customize", "", "", "", "shell", "normal", "section", false, "customize"),
+        item("item", "󰸉", "Wallpaper Catalog", "Open wallpaper picker", "", "jobowalls-gui", "shell", "primary", "row", false, "customize"),
+        item("item", "󰔎", "Theme", "Switch Omarchy theme", "", switchThemeCommand(), "shell", "primary", "row", false, "customize"),
+        item("item", "󰖔", "Background", "Switch theme background", "", switchBackgroundCommand(), "shell", "primary", "row", false, "customize"),
+        item("header", "", "Layout", "", "", "", "lacuna", "normal", "section", false, "layout"),
+        item("item", "󰙵", "Bar Density", "Toggle compact bar spacing", "", "", "lacuna", "normal", "row", false, "layout", "toggle-bar-density"),
+        item("item", root.sidebarCollapsed ? "󰍽" : "󰍾", root.sidebarCollapsed ? "Full Sidebar" : "Icon Rail", root.sidebarCollapsed ? "Expand the sidebar surface" : "Collapse to the icon rail", "", "", "lacuna", "normal", "row", false, "layout", "toggle-sidebar-rail"),
+        item("item", root.sidebarExclusive ? "󰹑" : "󰹐", root.sidebarExclusive ? "Sidebar Overlay" : "Sidebar Docked", root.sidebarExclusive ? "Let the sidebar float over windows" : "Reserve screen space for the sidebar", "", "", "lacuna", "normal", "row", false, "layout", "toggle-sidebar-mode")
       ]
     }
 
@@ -181,27 +241,22 @@ Item {
       return [
         item("header", "", "Session", "", "", "", "session", "normal", "section", false, "session"),
         item("item", "󱄄", "Screensaver", "Start screensaver now", "", "omarchy-launch-screensaver force", "session"),
-        item("item", "", "Lock", "Lock session", "", "omarchy-system-lock", "session", "primary", "featured", false, "session"),
+        item("item", "", "Lock", "Lock session", "", "omarchy-system-lock", "session", "primary", "row", false, "session"),
         item("item", "󰍃", "Logout", "End session", "", "omarchy-system-logout", "session"),
         item("header", "", "Power", "", "", "", "danger", "normal", "section", true, "power"),
         item("item", "󰜉", "Restart", "Reboot machine", "", "omarchy-system-reboot", "danger", "normal", "row", true, "power"),
-        item("item", "󰐥", "Shutdown", "Power off machine", "", "omarchy-system-shutdown", "danger", "primary", "featured", true, "power")
+        item("item", "󰐥", "Shutdown", "Power off machine", "", "omarchy-system-shutdown", "danger", "primary", "row", true, "power")
       ]
     }
 
     return [
       item("header", "", "Lacuna", "", "", "", "lacuna", "normal", "section", false, "lacuna"),
-      item("item", "󱥸", "Control surface", "Shell settings and preferences", "lacuna", "", "lacuna", "primary", "featured", false, "lacuna"),
-      item("item", root.sidebarCollapsed ? "󰍽" : "󰍾", root.sidebarCollapsed ? "Expand sidebar" : "Collapse to icon rail", root.sidebarCollapsed ? "Show the full utility sidebar" : "Shrink into a side icon bar", "", "", "lacuna", "primary", "row", false, "lacuna", "toggle-sidebar-rail"),
-      item("item", root.sidebarExclusive ? "󰹑" : "󰹐", root.sidebarExclusive ? "Use overlay mode" : "Reserve screen space", root.sidebarExclusive ? "Let the sidebar float over windows" : "Make windows leave room for the sidebar", "", "", "lacuna", "primary", "row", false, "lacuna", "toggle-sidebar-mode"),
+      item("item", "󰀻", "Apps", "Browse categorized launchers", "apps", "", "nav", "primary", "featured"),
+      item("item", "", "Customize", "Theme, background, and wallpaper tools", "customize", "", "shell", "primary", "featured", false, "customize"),
+      item("item", "", "System", "Lock, logout, restart, shutdown", "system", "", "session", "primary", "featured", false, "session"),
       item("header", "", "Launch", "", "", "", "nav"),
-      item("item", "󰀻", "Apps", "Browse categorized launchers", "apps", "", "nav", "primary", "row"),
-      item("item", "", "Terminal", "Open a terminal", "", "xdg-terminal-exec", "nav"),
-      item("item", "󰈹", "Browser", "Launch browser", "", "omarchy launch browser", "nav"),
-      item("header", "", "Desktop", "", "", "", "shell"),
-      item("item", "󰸉", "Wallpaper", "Open wallpaper picker", "", "jobowalls-gui", "shell", "primary", "row"),
-      item("item", "󰔎", "Theme", "Switch Omarchy theme", "", "omarchy theme switcher", "shell"),
-      item("item", "󰖔", "Background", "Switch theme background", "", "omarchy theme bg-switcher", "shell"),
+      item("item", "", "Terminal", "Open a terminal", "", "xdg-terminal-exec", "nav", "primary", "row"),
+      item("item", "󰈹", "Browser", "Launch browser", "", "omarchy launch browser", "nav", "primary", "row"),
       item("header", "", "System Tools", "", "", "", "session"),
       item("item", "󰖩", "Wi-Fi", "Open Wi-Fi controls", "", "hyprctl dispatch 'hl.dsp.exec_cmd([[omarchy launch wifi]])'", "session"),
       item("item", "󰂯", "Bluetooth", "Open Bluetooth controls", "", "hyprctl dispatch 'hl.dsp.exec_cmd([[omarchy launch bluetooth]])'", "session"),
@@ -209,10 +264,9 @@ Item {
       item("item", "󰄄", "Record screen", "Toggle screen recording", "", "omarchy capture screenrecording", "session"),
       item("item", "󰒲", "Idle", "Toggle idle behavior", "", "omarchy toggle idle", "session"),
       item("header", "", "Maintenance", "", "", "", "shell"),
-      item("item", "", "Update", "Run Omarchy update", "", "omarchy launch floating terminal with presentation 'omarchy update'", "shell"),
-      item("item", "󰑐", "Restart Lacuna", "Reload this Quickshell surface", "", "quickshell kill -p " + root.lacunaPath + "/shell.qml; setsid " + root.lacunaPath + "/run.sh >/tmp/lacuna-quickshell.log 2>&1 &", "shell"),
-      item("header", "", "Session", "", "", "", "session"),
-      item("item", "", "System", "Lock, logout, restart, shutdown", "system", "", "session", "primary", "row", false, "session")
+      item("item", "󱥸", "Lacuna Settings", "Runtime and layout controls", "lacuna", "", "lacuna", "normal", "row", false, "lacuna"),
+      item("item", "", "Update Lacuna", "Pull the Lacuna git repo", "", updateLacunaCommand(), "shell"),
+      item("item", "󰑐", "Restart Lacuna", "Reload this Quickshell surface", "", restartLacunaCommand(), "shell")
     ]
   }
 }

@@ -8,6 +8,7 @@ Item {
   signal closeRequested()
 
   property string title: "Lacuna Menu"
+  property string version: ""
   property string subtitle: "Quickshell / control aperture"
   property bool canGoBack: false
   property color foreground: "#d8dee9"
@@ -16,10 +17,11 @@ Item {
   property color danger: "#bf616a"
   property string bodyFontFamily: "GeistMono Nerd Font"
   property bool compact: false
+  readonly property bool hasSubtitle: subtitle !== ""
   readonly property int controlSize: compact ? 24 : tokens.controlSmall
 
   width: parent ? parent.width : implicitWidth
-  height: compact ? 50 : 62
+  height: compact ? (hasSubtitle ? 50 : 36) : (hasSubtitle ? 62 : 46)
 
   FontLoader {
     id: headingFont
@@ -50,18 +52,51 @@ Item {
     anchors.rightMargin: tokens.spaceLarge
     anchors.top: parent.top
     anchors.topMargin: root.compact ? 3 : 5
-    spacing: tokens.spaceTiny
+    spacing: root.hasSubtitle ? tokens.spaceTiny : 0
 
-    LacunaText {
+    Row {
+      id: titleRow
+
       width: parent.width
-      text: root.title
-      color: root.foreground
-      fontFamily: headingFont.name !== "" ? headingFont.name : "Tektur"
-      font.pixelSize: root.compact ? 14 : tokens.textTitle
-      font.weight: Font.DemiBold
+      spacing: root.compact ? 6 : 8
+
+      LacunaText {
+        width: Math.min(implicitWidth + 2, parent.width - versionTag.width - parent.spacing)
+        text: root.title
+        color: root.foreground
+        fontFamily: headingFont.name !== "" ? headingFont.name : "Tektur"
+        font.pixelSize: root.compact ? 14 : tokens.textTitle
+        font.weight: Font.DemiBold
+        font.letterSpacing: root.compact ? 0.6 : 0.9
+      }
+
+      LacunaRect {
+        id: versionTag
+
+        visible: root.version !== ""
+        anchors.verticalCenter: parent.verticalCenter
+        width: visible ? versionText.implicitWidth + (root.compact ? 10 : 12) : 0
+        height: root.compact ? 14 : 16
+        radius: 2
+        color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.08)
+        border.width: 1
+        border.color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18)
+
+        LacunaText {
+          id: versionText
+
+          anchors.centerIn: parent
+          text: root.version
+          color: root.muted
+          fontFamily: root.bodyFontFamily
+          font.pixelSize: root.compact ? 7 : 8
+          font.weight: Font.DemiBold
+        }
+      }
     }
 
     LacunaText {
+      visible: root.hasSubtitle
       width: parent.width
       text: root.subtitle
       color: root.muted

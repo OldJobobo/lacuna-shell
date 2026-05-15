@@ -11,6 +11,36 @@ Scope {
   property var sharedCompactState: null
   readonly property var compactState: sharedCompactState || localCompactState
 
+  function shellQuote(value) {
+    return "'" + String(value).replace(/'/g, "'\\''") + "'"
+  }
+
+  function terminalCommand(command, title, holdOpen) {
+    var terminalBody = command
+    if (holdOpen) {
+      terminalBody = command + "; status=$?; printf '\\nCommand exited with status %s. Press Enter to close...' \"$status\"; read -r _; exit \"$status\""
+    }
+    return "foot --app-id=org.omarchy.terminal --title=" + shellQuote(title || "Lacuna") + " -e bash -lc " + shellQuote(terminalBody)
+  }
+
+  function omarchyUpdateCommand() {
+    return terminalCommand("omarchy update", "Omarchy Update", true)
+  }
+
+  function resetImageSelectorCommand() {
+    var selectorPath = (Quickshell.env("HOME") || "") + "/.local/share/omarchy/default/quickshell/background-switcher.qml"
+    var socketPath = (Quickshell.env("XDG_RUNTIME_DIR") || ("/run/user/" + Quickshell.env("UID"))) + "/omarchy-image-selector.sock"
+    return "quickshell kill -p " + shellQuote(selectorPath) + " >/dev/null 2>&1 || true; rm -f " + shellQuote(socketPath)
+  }
+
+  function switchThemeCommand() {
+    return resetImageSelectorCommand() + "; theme=$(omarchy theme switcher); [ -n \"$theme\" ] && omarchy theme set \"$theme\""
+  }
+
+  function switchBackgroundCommand() {
+    return resetImageSelectorCommand() + "; background=$(omarchy theme bg-switcher); [ -n \"$background\" ] && omarchy theme bg set \"$background\""
+  }
+
   Theme {
     id: theme
   }
@@ -214,7 +244,7 @@ Scope {
             foreground: theme.foreground
             background: theme.background
             maxTextLength: panel.notebook ? panel.notebookTextLength : 32
-            onTriggered: commands.run("omarchy launch floating terminal with presentation 'omarchy update'")
+            onTriggered: commands.run(root.omarchyUpdateCommand())
           }
 
           ScriptPill {
@@ -276,7 +306,7 @@ Scope {
             foreground: theme.foreground
             background: theme.background
             maxTextLength: panel.notebook ? 14 : 26
-            onTriggered: commands.run("omarchy theme switcher")
+            onTriggered: commands.run(root.switchThemeCommand())
             onSecondaryTriggered: commands.run("current=\"$(omarchy theme current)\"; next=\"$(omarchy theme list | grep -Fvx \"$current\" | shuf -n 1)\"; [ -n \"$next\" ] && omarchy theme set \"$next\"")
           }
 
@@ -288,7 +318,7 @@ Scope {
             foreground: theme.foreground
             background: theme.background
             maxTextLength: panel.notebook ? 12 : 18
-            onTriggered: commands.run("omarchy theme bg-switcher")
+            onTriggered: commands.run(root.switchBackgroundCommand())
             onSecondaryTriggered: commands.run("omarchy theme bg next")
           }
 
@@ -454,7 +484,7 @@ Scope {
             foreground: theme.foreground
             background: theme.background
             maxTextLength: 10
-            onTriggered: commands.run("omarchy launch floating terminal with presentation 'omarchy update'")
+            onTriggered: commands.run(root.omarchyUpdateCommand())
           }
 
           ScriptPill {
@@ -750,7 +780,7 @@ Scope {
             foreground: theme.foreground
             background: theme.background
             maxTextLength: 26
-            onTriggered: commands.run("omarchy theme switcher")
+            onTriggered: commands.run(root.switchThemeCommand())
             onSecondaryTriggered: commands.run("current=\"$(omarchy theme current)\"; next=\"$(omarchy theme list | grep -Fvx \"$current\" | shuf -n 1)\"; [ -n \"$next\" ] && omarchy theme set \"$next\"")
           }
 
@@ -761,7 +791,7 @@ Scope {
             foreground: theme.foreground
             background: theme.background
             maxTextLength: 18
-            onTriggered: commands.run("omarchy theme bg-switcher")
+            onTriggered: commands.run(root.switchBackgroundCommand())
             onSecondaryTriggered: commands.run("omarchy theme bg next")
           }
         }

@@ -46,5 +46,6 @@ Item {
     fontFamily: root.fontFamily
     font.pixelSize: root.compact ? 8 : 9
     font.weight: Font.DemiBold
+    font.letterSpacing: root.compact ? 0.5 : 0.7
   }
 }

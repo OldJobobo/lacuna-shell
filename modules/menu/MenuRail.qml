@@ -40,12 +40,7 @@ Column {
   }
 
   function railItems() {
-    var source = root.registry.itemsFor(root.menuState.currentView)
-    var items = []
-    for (var i = 0; i < source.length; i++) {
-      if (source[i].kind === "item") items.push(source[i])
-    }
-    return items
+    return root.registry.railItems()
   }
 
   function showTooltip(item, entry) {
