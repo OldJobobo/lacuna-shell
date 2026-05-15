@@ -13,6 +13,7 @@ Item {
   property color accent: "#88c0d0"
   property color foreground: "#d8dee9"
   property color panelColor: "#101315"
+  property bool cornerPieces: true
 
   // Layout — single source of truth, derived from design tokens
   readonly property int maxBodyWidth: 360
@@ -20,6 +21,7 @@ Item {
   readonly property int paddingX: tokens.spaceXLarge
   readonly property int paddingY: tokens.spaceLarge
   readonly property int scoopRadius: tokens.spaceXLarge
+  readonly property int effectiveScoopRadius: cornerPieces ? scoopRadius : 0
   readonly property int bodyRadius: tokens.spaceNormal
   readonly property int barOverlap: 1
   readonly property int screenMargin: tokens.spaceNormal
@@ -46,8 +48,8 @@ Item {
   readonly property int bodyContentHeight: Math.max(textPixelSize, measuredContentHeight)
   readonly property int bodyWidth: bodyContentWidth + 2 * paddingX
   readonly property int bodyHeight: bodyContentHeight + 2 * paddingY
-  readonly property int popupWidth: bodyWidth + 2 * scoopRadius
-  readonly property int popupHeight: barOverlap + scoopRadius + bodyHeight
+  readonly property int popupWidth: bodyWidth + 2 * effectiveScoopRadius
+  readonly property int popupHeight: barOverlap + effectiveScoopRadius + bodyHeight
 
   // Anchor position
   property int popupX: 0
@@ -171,8 +173,7 @@ Item {
     implicitWidth: root.popupWidth
     implicitHeight: root.popupHeight
 
-    // Tooltip silhouette: a rounded body suspended below the bar, joined on each
-    // side by a concave fillet that makes the bar appear to flow into the body.
+    // Tooltip silhouette: optionally joined to the bar by concave fillets.
     Shape {
       anchors.fill: parent
       asynchronous: true
@@ -190,51 +191,51 @@ Item {
 
         // Top-right: concave scoop into the body.
         PathQuad {
-          x: root.popupWidth - root.scoopRadius
-          y: root.barOverlap + root.scoopRadius
-          controlX: root.popupWidth - root.scoopRadius
+          x: root.popupWidth - root.effectiveScoopRadius
+          y: root.barOverlap + root.effectiveScoopRadius
+          controlX: root.popupWidth - root.effectiveScoopRadius
           controlY: root.barOverlap
         }
 
         // Right side of body
         PathLine {
-          x: root.popupWidth - root.scoopRadius
+          x: root.popupWidth - root.effectiveScoopRadius
           y: root.popupHeight - root.bodyRadius
         }
 
         // Bottom-right corner
         PathQuad {
-          x: root.popupWidth - root.scoopRadius - root.bodyRadius
+          x: root.popupWidth - root.effectiveScoopRadius - root.bodyRadius
           y: root.popupHeight
-          controlX: root.popupWidth - root.scoopRadius
+          controlX: root.popupWidth - root.effectiveScoopRadius
           controlY: root.popupHeight
         }
 
         // Bottom edge
         PathLine {
-          x: root.scoopRadius + root.bodyRadius
+          x: root.effectiveScoopRadius + root.bodyRadius
           y: root.popupHeight
         }
 
         // Bottom-left corner
         PathQuad {
-          x: root.scoopRadius
+          x: root.effectiveScoopRadius
           y: root.popupHeight - root.bodyRadius
-          controlX: root.scoopRadius
+          controlX: root.effectiveScoopRadius
           controlY: root.popupHeight
         }
 
         // Left side of body
         PathLine {
-          x: root.scoopRadius
-          y: root.barOverlap + root.scoopRadius
+          x: root.effectiveScoopRadius
+          y: root.barOverlap + root.effectiveScoopRadius
         }
 
         // Top-left: concave scoop back up to the bar.
         PathQuad {
           x: 0
           y: root.barOverlap
-          controlX: root.scoopRadius
+          controlX: root.effectiveScoopRadius
           controlY: root.barOverlap
         }
       }
@@ -244,8 +245,8 @@ Item {
       id: tooltipLabel
       anchors.left: parent.left
       anchors.top: parent.top
-      anchors.leftMargin: root.scoopRadius + root.paddingX
-      anchors.topMargin: root.barOverlap + root.scoopRadius + root.paddingY
+      anchors.leftMargin: root.effectiveScoopRadius + root.paddingX
+      anchors.topMargin: root.barOverlap + root.effectiveScoopRadius + root.paddingY
       width: root.bodyContentWidth
       text: root.tooltipText
       textFormat: root.richTooltip ? Text.RichText : Text.PlainText

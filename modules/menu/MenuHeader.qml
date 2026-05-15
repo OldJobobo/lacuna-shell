@@ -18,10 +18,11 @@ Item {
   property string bodyFontFamily: "GeistMono Nerd Font"
   property bool compact: false
   readonly property bool hasSubtitle: subtitle !== ""
+  readonly property bool hasVersion: version !== ""
   readonly property int controlSize: compact ? 24 : tokens.controlSmall
 
   width: parent ? parent.width : implicitWidth
-  height: compact ? (hasSubtitle ? 50 : 36) : (hasSubtitle ? 62 : 46)
+  height: compact ? (hasSubtitle || hasVersion ? 50 : 36) : (hasSubtitle || hasVersion ? 62 : 46)
 
   FontLoader {
     id: headingFont
@@ -54,45 +55,14 @@ Item {
     anchors.topMargin: root.compact ? 3 : 5
     spacing: root.hasSubtitle ? tokens.spaceTiny : 0
 
-    Row {
-      id: titleRow
-
+    LacunaText {
       width: parent.width
-      spacing: root.compact ? 6 : 8
-
-      LacunaText {
-        width: Math.min(implicitWidth + 2, parent.width - versionTag.width - parent.spacing)
-        text: root.title
-        color: root.foreground
-        fontFamily: headingFont.name !== "" ? headingFont.name : "Tektur"
-        font.pixelSize: root.compact ? 14 : tokens.textTitle
-        font.weight: Font.DemiBold
-        font.letterSpacing: root.compact ? 0.6 : 0.9
-      }
-
-      LacunaRect {
-        id: versionTag
-
-        visible: root.version !== ""
-        anchors.verticalCenter: parent.verticalCenter
-        width: visible ? versionText.implicitWidth + (root.compact ? 10 : 12) : 0
-        height: root.compact ? 14 : 16
-        radius: 2
-        color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.08)
-        border.width: 1
-        border.color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18)
-
-        LacunaText {
-          id: versionText
-
-          anchors.centerIn: parent
-          text: root.version
-          color: root.muted
-          fontFamily: root.bodyFontFamily
-          font.pixelSize: root.compact ? 7 : 8
-          font.weight: Font.DemiBold
-        }
-      }
+      text: root.title
+      color: root.foreground
+      fontFamily: headingFont.name !== "" ? headingFont.name : "Tektur"
+      font.pixelSize: root.compact ? 14 : tokens.textTitle
+      font.weight: Font.DemiBold
+      font.letterSpacing: root.compact ? 0.6 : 0.9
     }
 
     LacunaText {
@@ -103,6 +73,19 @@ Item {
       fontFamily: root.bodyFontFamily
       font.pixelSize: root.compact ? 8 : tokens.textHint
     }
+  }
+
+  LacunaText {
+    visible: root.hasVersion
+    anchors.right: parent.right
+    anchors.rightMargin: 2
+    anchors.bottom: parent.bottom
+    anchors.bottomMargin: root.compact ? 7 : 9
+    text: root.version
+    color: root.muted
+    fontFamily: root.bodyFontFamily
+    font.pixelSize: root.compact ? 9 : 10
+    font.weight: Font.DemiBold
   }
 
   Row {

@@ -9,7 +9,9 @@ Scope {
 
   property var menuState: null
   property var sharedCompactState: null
+  property var sharedSidebarState: null
   readonly property var compactState: sharedCompactState || localCompactState
+  readonly property var sidebarState: sharedSidebarState || localSidebarState
 
   function shellQuote(value) {
     return "'" + String(value).replace(/'/g, "'\\''") + "'"
@@ -53,6 +55,10 @@ Scope {
     id: localCompactState
   }
 
+  SidebarState {
+    id: localSidebarState
+  }
+
   SystemMonitor {
     id: systemMonitor
   }
@@ -92,6 +98,7 @@ Scope {
         panelWindow: panel
         panelSurfaceHeight: panel.barHeight
         panelColor: theme.panel
+        cornerPieces: sidebarState.cornerPieces
       }
 
       Rectangle {
@@ -686,6 +693,7 @@ Scope {
         panelSurfaceY: bottomPanel.shadowExtent
         panelSurfaceHeight: bottomPanel.barHeight
         panelColor: theme.panel
+        cornerPieces: sidebarState.cornerPieces
       }
 
       Rectangle {

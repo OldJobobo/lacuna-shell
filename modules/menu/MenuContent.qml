@@ -146,6 +146,8 @@ Column {
         priority: parent.entry.priority
         layout: parent.entry.layout
         danger: parent.entry.danger
+        switchVisible: parent.entry.switchVisible || false
+        switchChecked: parent.entry.switchChecked || false
         background: root.background
         fontFamily: root.bodyFontFamily
         labelFontFamily: root.itemFontFamily

@@ -16,6 +16,8 @@ LacunaRect {
   property string layout: "row"
   property bool danger: false
   property bool hasChildren: false
+  property bool switchVisible: false
+  property bool switchChecked: false
   property color foreground: "#d8dee9"
   property color muted: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.48)
   property color accent: "#88c0d0"
@@ -114,7 +116,7 @@ LacunaRect {
     id: content
     visible: !root.header
     anchors.left: parent.left
-    anchors.right: arrow.left
+    anchors.right: trailing.left
     anchors.verticalCenter: parent.verticalCenter
     anchors.leftMargin: root.contentLeftMargin
     anchors.rightMargin: 8
@@ -171,16 +173,50 @@ LacunaRect {
     }
   }
 
-  LacunaText {
-    id: arrow
-    visible: !root.header && root.hasChildren
+  Item {
+    id: trailing
+
+    visible: !root.header && (root.hasChildren || root.switchVisible)
     anchors.right: parent.right
     anchors.rightMargin: 8
     anchors.verticalCenter: parent.verticalCenter
-    text: "›"
-    color: root.hovered ? root.toneAccent : root.muted
-    fontFamily: root.fontFamily
-    font.pixelSize: root.compact ? 14 : 16
+    width: root.switchVisible ? (root.compact ? 32 : 36) : 12
+    height: root.rowHeight
+
+    LacunaText {
+      visible: root.hasChildren && !root.switchVisible
+      anchors.centerIn: parent
+      text: "›"
+      color: root.hovered ? root.toneAccent : root.muted
+      fontFamily: root.fontFamily
+      font.pixelSize: root.compact ? 14 : 16
+    }
+
+    LacunaRect {
+      id: switchTrack
+
+      visible: root.switchVisible
+      anchors.centerIn: parent
+      width: root.compact ? 30 : 34
+      height: root.compact ? 14 : 16
+      radius: height / 2
+      color: root.switchChecked ? Qt.rgba(root.toneAccent.r, root.toneAccent.g, root.toneAccent.b, 0.32) : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.12)
+      border.width: 1
+      border.color: root.switchChecked ? Qt.rgba(root.toneAccent.r, root.toneAccent.g, root.toneAccent.b, 0.65) : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.18)
+
+      LacunaRect {
+        width: root.compact ? 8 : 10
+        height: width
+        radius: width / 2
+        x: root.switchChecked ? switchTrack.width - width - 3 : 3
+        anchors.verticalCenter: parent.verticalCenter
+        color: root.switchChecked ? root.toneAccent : root.muted
+
+        Behavior on x {
+          LacunaAnim { motion: "fast" }
+        }
+      }
+    }
   }
 
   LacunaStateLayer {

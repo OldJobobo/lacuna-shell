@@ -9,6 +9,7 @@ Item {
   readonly property string stateFile: stateDir + "/sidebar.state"
   property bool exclusive: true
   property bool collapsed: false
+  property bool cornerPieces: true
 
   function load() {
     if (!loadProc.running) {
@@ -27,13 +28,18 @@ Item {
     save()
   }
 
+  function toggleCornerPieces() {
+    cornerPieces = !cornerPieces
+    save()
+  }
+
   function expand() {
     collapsed = false
     save()
   }
 
   function save() {
-    saveProc.command = ["bash", "-lc", "mkdir -p " + quote(stateDir) + "; printf '%s\\n%s\\n' " + quote(exclusive ? "exclusive" : "overlay") + " " + quote(collapsed ? "rail" : "full") + " > " + quote(stateFile)]
+    saveProc.command = ["bash", "-lc", "mkdir -p " + quote(stateDir) + "; printf '%s\\n%s\\n%s\\n' " + quote(exclusive ? "exclusive" : "overlay") + " " + quote(collapsed ? "rail" : "full") + " " + quote(cornerPieces ? "corners" : "flat") + " > " + quote(stateFile)]
     saveProc.running = true
   }
 
@@ -46,7 +52,7 @@ Item {
   Process {
     id: loadProc
     property string output: ""
-    command: ["bash", "-lc", "cat " + root.quote(root.stateFile) + " 2>/dev/null || printf 'exclusive\\nfull\\n'"]
+    command: ["bash", "-lc", "cat " + root.quote(root.stateFile) + " 2>/dev/null || printf 'exclusive\\nfull\\ncorners\\n'"]
 
     stdout: SplitParser {
       onRead: function(data) {
@@ -58,6 +64,7 @@ Item {
       var output = loadProc.output.trim()
       root.exclusive = output.indexOf("overlay") === -1
       root.collapsed = output.indexOf("rail") !== -1
+      root.cornerPieces = output.indexOf("flat") === -1
     }
   }
 

@@ -19,6 +19,7 @@ Item {
   property int joinRadius: 18
   property int connectorOverlap: 33
   property int bodyRightInset: joinRadius
+  property bool cornerPieces: true
   property color panelColor: "#101315"
   property real openProgress: open ? 1 : 0
 
@@ -50,6 +51,7 @@ Item {
     Shape {
       id: cornerMold
 
+      visible: root.cornerPieces && root.bodyRightInset > 0
       x: root.panelWidth
       y: root.bodyTop
       width: root.bodyRightInset
@@ -86,6 +88,7 @@ Item {
     }
 
     MouseArea {
+      enabled: root.cornerPieces && root.bodyRightInset > 0
       x: root.panelWidth
       y: root.bodyTop
       width: root.bodyRightInset

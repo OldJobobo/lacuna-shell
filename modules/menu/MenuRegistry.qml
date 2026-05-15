@@ -7,9 +7,10 @@ Item {
   property string lacunaPath: Quickshell.env("LACUNA_PATH") || Quickshell.env("PWD")
   property bool sidebarExclusive: true
   property bool sidebarCollapsed: false
+  property bool sidebarCornerPieces: true
   property var appCatalog: null
 
-  function item(kind, icon, label, hint, view, command, tone, priority, layout, danger, group, action, iconSource) {
+  function item(kind, icon, label, hint, view, command, tone, priority, layout, danger, group, action, iconSource, switchVisible, switchChecked) {
     return {
       kind: kind,
       icon: icon,
@@ -23,7 +24,9 @@ Item {
       priority: priority || "normal",
       layout: layout || (kind === "header" ? "section" : "row"),
       danger: danger || tone === "danger",
-      group: group || ""
+      group: group || "",
+      switchVisible: switchVisible === true,
+      switchChecked: switchChecked === true
     }
   }
 
@@ -220,6 +223,7 @@ Item {
         item("item", "󰙵", "Bar Density", "Toggle compact bar spacing", "", "", "lacuna", "normal", "row", false, "lacuna", "toggle-bar-density"),
         item("item", root.sidebarCollapsed ? "󰍽" : "󰍾", root.sidebarCollapsed ? "Full Sidebar" : "Icon Rail", root.sidebarCollapsed ? "Expand the sidebar surface" : "Collapse to the icon rail", "", "", "lacuna", "normal", "row", false, "lacuna", "toggle-sidebar-rail"),
         item("item", root.sidebarExclusive ? "󰹑" : "󰹐", root.sidebarExclusive ? "Sidebar Overlay" : "Sidebar Docked", root.sidebarExclusive ? "Let the sidebar float over windows" : "Reserve screen space for the sidebar", "", "", "lacuna", "normal", "row", false, "lacuna", "toggle-sidebar-mode"),
+        item("item", "󰉼", root.sidebarCornerPieces ? "Corner Pieces" : "Flat Edge", root.sidebarCornerPieces ? "Show the rounded connector pieces" : "Hide the rounded connector pieces", "", "", "lacuna", "normal", "row", false, "lacuna", "toggle-corner-pieces", "", true, root.sidebarCornerPieces),
         item("item", "󰑐", "Reload app catalog", "Rescan desktop launchers", "", "", "shell", "normal", "row", false, "apps", "reload-apps")
       ]
     }
@@ -233,7 +237,8 @@ Item {
         item("header", "", "Layout", "", "", "", "lacuna", "normal", "section", false, "layout"),
         item("item", "󰙵", "Bar Density", "Toggle compact bar spacing", "", "", "lacuna", "normal", "row", false, "layout", "toggle-bar-density"),
         item("item", root.sidebarCollapsed ? "󰍽" : "󰍾", root.sidebarCollapsed ? "Full Sidebar" : "Icon Rail", root.sidebarCollapsed ? "Expand the sidebar surface" : "Collapse to the icon rail", "", "", "lacuna", "normal", "row", false, "layout", "toggle-sidebar-rail"),
-        item("item", root.sidebarExclusive ? "󰹑" : "󰹐", root.sidebarExclusive ? "Sidebar Overlay" : "Sidebar Docked", root.sidebarExclusive ? "Let the sidebar float over windows" : "Reserve screen space for the sidebar", "", "", "lacuna", "normal", "row", false, "layout", "toggle-sidebar-mode")
+        item("item", root.sidebarExclusive ? "󰹑" : "󰹐", root.sidebarExclusive ? "Sidebar Overlay" : "Sidebar Docked", root.sidebarExclusive ? "Let the sidebar float over windows" : "Reserve screen space for the sidebar", "", "", "lacuna", "normal", "row", false, "layout", "toggle-sidebar-mode"),
+        item("item", "󰉼", root.sidebarCornerPieces ? "Corner Pieces" : "Flat Edge", root.sidebarCornerPieces ? "Show the rounded connector pieces" : "Hide the rounded connector pieces", "", "", "lacuna", "normal", "row", false, "layout", "toggle-corner-pieces", "", true, root.sidebarCornerPieces)
       ]
     }
 

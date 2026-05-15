@@ -11,7 +11,9 @@ Scope {
   required property var menuState
   property string lacunaPath: Quickshell.env("LACUNA_PATH") || Quickshell.env("PWD")
   property var sharedCompactState: null
+  property var sharedSidebarState: null
   readonly property var compactState: sharedCompactState || localCompactState
+  readonly property var sidebarState: sharedSidebarState || localSidebarState
   property color foreground: menuTheme.foreground
   property color background: menuTheme.background
   property color panelColor: menuTheme.panel
@@ -28,9 +30,9 @@ Scope {
   property int railPanelWidth: railButtonWidth + (compact ? 6 : 10)
   property int panelWidth: sidebarState.collapsed ? railPanelWidth : fullPanelWidth
   property int barHeight: compact ? 24 : 32
-  property int joinRadius: compact ? 14 : 18
-  property int connectorOverlap: compact ? 25 : 33
-  property int bodyRightInset: joinRadius
+  property int joinRadius: sidebarState.cornerPieces ? (compact ? 14 : 18) : 0
+  property int connectorOverlap: sidebarState.cornerPieces ? (compact ? 25 : 33) : 0
+  property int bodyRightInset: sidebarState.cornerPieces ? joinRadius : 0
   property int surfaceRightInset: bodyRightInset
   // In exclusive mode the compositor pushes our window down by the bar's
   // exclusive zone, so the surface top IS the bar bottom (offset 0).
@@ -56,6 +58,11 @@ Scope {
 
     if (entry.action === "toggle-sidebar-rail") {
       sidebarState.toggleCollapsed()
+      return
+    }
+
+    if (entry.action === "toggle-corner-pieces") {
+      sidebarState.toggleCornerPieces()
       return
     }
 
@@ -87,7 +94,7 @@ Scope {
   }
 
   SidebarState {
-    id: sidebarState
+    id: localSidebarState
   }
 
   AppCatalog {
@@ -115,6 +122,7 @@ Scope {
     id: registry
     sidebarExclusive: sidebarState.exclusive
     sidebarCollapsed: sidebarState.collapsed
+    sidebarCornerPieces: sidebarState.cornerPieces
     appCatalog: appCatalog
   }
 
@@ -169,6 +177,7 @@ Scope {
       joinRadius: root.joinRadius
       connectorOverlap: root.connectorOverlap
       bodyRightInset: root.surfaceRightInset
+      cornerPieces: sidebarState.cornerPieces
       panelColor: root.panelColor
 
       MenuContent {
