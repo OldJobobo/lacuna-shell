@@ -17,11 +17,19 @@ Item {
   readonly property real edgeTop: offsetY + (source ? Number(source.borderTop || 0) : 0)
   readonly property real edgeRight: offsetX + (source ? Number(source.borderRight || 0) : 0)
   readonly property real edgeBottom: offsetY + (source ? Number(source.borderBottom || 0) : 0)
-  readonly property real radius: source ? Number(source.borderRadius || 0.01) : 0.01
+  readonly property real radius: source ? Math.max(0, Number(source.borderRadius) || 0) : 0
   readonly property real upperRightEnd: offsetY + (source ? Number(source.rightVerticalUpperEndY || 0) : 0)
   readonly property real lowerRightStart: offsetY + (source ? Number(source.rightVerticalLowerStartY || 0) : 0)
+  readonly property real secondUpperRightEnd: offsetY + (source ? Number(source.rightVerticalSecondUpperEndY || 0) : 0)
+  readonly property real secondLowerRightStart: offsetY + (source ? Number(source.rightVerticalSecondLowerStartY || 0) : 0)
   readonly property real lowerLeftEnd: offsetY + (source ? Number(source.leftVerticalLowerEndY || 0) : 0)
   readonly property real upperLeftStart: offsetY + (source ? Number(source.leftVerticalUpperStartY || 0) : 0)
+  readonly property real secondLowerLeftEnd: offsetY + (source ? Number(source.leftVerticalSecondLowerEndY || 0) : 0)
+  readonly property real secondUpperLeftStart: offsetY + (source ? Number(source.leftVerticalSecondUpperStartY || 0) : 0)
+  readonly property real topLeftEnd: offsetX + (source ? Number(source.topHorizontalLeftEndX || 0) : 0)
+  readonly property real topRightStart: offsetX + (source ? Number(source.topHorizontalRightStartX || 0) : 0)
+  readonly property real bottomRightEnd: offsetX + (source ? Number(source.bottomHorizontalRightEndX || 0) : 0)
+  readonly property real bottomLeftStart: offsetX + (source ? Number(source.bottomHorizontalLeftStartX || 0) : 0)
   readonly property real kappa: source ? Number(source.curveKappa || 0) : 0
 
   visible: renderable
@@ -41,10 +49,12 @@ Item {
       strokeColor: root.source ? root.source.borderColor : "transparent"
       strokeWidth: root.source ? root.source.borderWidth : 1
       capStyle: ShapePath.FlatCap
-      joinStyle: ShapePath.RoundJoin
+      joinStyle: ShapePath.MiterJoin
       startX: root.edgeLeft + root.radius
       startY: root.edgeTop
 
+      PathLine { x: root.topLeftEnd; y: root.edgeTop }
+      PathMove { x: root.topRightStart; y: root.edgeTop }
       PathLine { x: root.edgeRight - root.radius; y: root.edgeTop }
       PathCubic {
         x: root.edgeRight; y: root.edgeTop + root.radius
@@ -53,12 +63,16 @@ Item {
       }
       PathLine { x: root.edgeRight; y: root.upperRightEnd }
       PathMove { x: root.edgeRight; y: root.lowerRightStart }
+      PathLine { x: root.edgeRight; y: root.secondUpperRightEnd }
+      PathMove { x: root.edgeRight; y: root.secondLowerRightStart }
       PathLine { x: root.edgeRight; y: root.edgeBottom - root.radius }
       PathCubic {
         x: root.edgeRight - root.radius; y: root.edgeBottom
         control1X: root.edgeRight; control1Y: root.edgeBottom - root.radius * (1 - root.kappa)
         control2X: root.edgeRight - root.radius * (1 - root.kappa); control2Y: root.edgeBottom
       }
+      PathLine { x: root.bottomRightEnd; y: root.edgeBottom }
+      PathMove { x: root.bottomLeftStart; y: root.edgeBottom }
       PathLine { x: root.edgeLeft + root.radius; y: root.edgeBottom }
       PathCubic {
         x: root.edgeLeft; y: root.edgeBottom - root.radius
@@ -67,6 +81,8 @@ Item {
       }
       PathLine { x: root.edgeLeft; y: root.lowerLeftEnd }
       PathMove { x: root.edgeLeft; y: root.upperLeftStart }
+      PathLine { x: root.edgeLeft; y: root.secondLowerLeftEnd }
+      PathMove { x: root.edgeLeft; y: root.secondUpperLeftStart }
       PathLine { x: root.edgeLeft; y: root.edgeTop + root.radius }
       PathCubic {
         x: root.edgeLeft + root.radius; y: root.edgeTop

@@ -26,6 +26,10 @@ def run(command: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--keep", action="store_true", help="Keep the temporary rehearsal directory.")
+    parser.add_argument(
+        "--output-dir",
+        help="Copy the verified package artifact into this directory after rehearsal.",
+    )
     args = parser.parse_args()
     required = ["makepkg", "bsdtar"]
     missing = [name for name in required if shutil.which(name) is None]
@@ -172,6 +176,14 @@ def main() -> int:
             return 1
 
         digest = hashlib.sha256(package.read_bytes()).hexdigest()
+        if args.output_dir:
+            output_dir = Path(args.output_dir)
+            if not output_dir.is_absolute():
+                output_dir = ROOT / output_dir
+            output_dir.mkdir(parents=True, exist_ok=True)
+            output_package = output_dir / package.name
+            shutil.copy2(package, output_package)
+            print(f"Copied verified package to {output_package}")
         print(f"AUR rehearsal PASS: {package.name} ({len(names)} entries, {digest})")
         return 0
     finally:

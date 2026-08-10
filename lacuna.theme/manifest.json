@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.theme",
   "name": "Lacuna Theme",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "author": "Lacuna",
   "description": "Lacuna-styled top-bar widget for the active Omarchy theme.",
   "kinds": [

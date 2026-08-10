@@ -14,8 +14,8 @@ PopupWindow {
   property bool reduceMotion: false
   property int panelWidth: 420
   property int panelHeight: 500
-  property int joinRadius: 13
-  property int cornerRadius: 14
+  property int joinRadius: bar && bar.resolvedCornerRadius !== undefined ? Math.max(0, Math.round(Number(bar.resolvedCornerRadius) || 0)) : 14
+  property int cornerRadius: joinRadius
   property int margin: 8
   property color accentColor: "#89b4fa"
   property string fontFamily: bar ? bar.fontFamily : "Hack Nerd Font Propo"

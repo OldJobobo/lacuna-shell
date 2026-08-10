@@ -13,7 +13,7 @@ The current release line is:
 ```
 
 Do not publish `0.0.1-beta`; the repository established the `0.1.0` release
-line before preparing the current `0.1.0-beta.3` candidate, so that version
+line before preparing the current `0.1.0-beta.4` candidate, so that version
 would move backward.
 
 ## Release Classes
@@ -94,14 +94,14 @@ private project knowledge.
 3. Push the commit and tag.
 4. Verify the release workflow runs the full project gate, checks tag/version
    and manifest/version parity, rehearses the Arch package, builds the archive,
-   checksum, and inventory, and creates the GitHub release. Beta and RC tags
-   must be marked as prereleases.
+   checksum, inventory, and verified Arch package, and creates the GitHub
+   release. Beta and RC tags must be marked as prereleases.
 5. Publish each approved beta, RC, and stable release through the same
    `lacuna-shell` AUR package. For every release, replace the
    scaffold's `SKIP` with that release archive's real checksum, regenerate
    `.SRCINFO`, and run `scripts/check-aur-package --publish-check`. Arch
-   `pkgver` removes the SemVer prerelease hyphen, so `0.1.0-beta.3` becomes
-   `0.1.0beta.3` and sorts before RC and stable versions.
+   `pkgver` removes the SemVer prerelease hyphen, so `0.1.0-beta.4` becomes
+   `0.1.0beta.4` and sorts before RC and stable versions.
 6. Follow `packaging/aur/SUBMISSION.md`, including the clean-chroot build, exact
    package inspection, dedicated AUR repository, and post-publication smoke.
 7. Install the published artifact once; do not treat workflow success alone as

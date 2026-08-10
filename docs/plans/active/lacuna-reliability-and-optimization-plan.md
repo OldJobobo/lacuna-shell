@@ -315,7 +315,7 @@ The original schema-v2 split was:
 }
 ```
 
-Bar-widget flyout connectors should remain style-token-owned by default. Add a persisted `barFlyouts.connectorPieces` setting only if independent user control is intentionally desired.
+Bar-widget flyout connectors and exposed corners consume the universal resolved Shell Corners radius through the injected bar context. Do not add a separate `barFlyouts.connectorPieces` setting.
 
 ### Derived geometry
 
@@ -379,7 +379,7 @@ from the requested boolean.
 6. Rail/full, exclusive/overlay, frame off/on, border/shadow off/on, top/bottom/vertical bar, and Material/Omarchy/Lacuna style coverage.
 7. Multi-monitor auto/pinned/all policies and monitor handoff.
 8. Frame/video/vignette invalidation uses a geometry key containing the complete sorted selected-output set.
-9. Add all identical bar flyout surfaces to vendored parity or generate them from one canonical source.
+9. Keep all identical bar flyout surfaces generated from `lacuna.clock/BarFlyoutSurface.qml` through vendored parity.
 
 ### Exit gate
 

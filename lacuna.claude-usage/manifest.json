@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.claude-usage",
   "name": "Lacuna Claude Usage",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "author": "Lacuna",
   "description": "Lacuna-styled top-bar widget for Claude Code usage.",
   "kinds": [

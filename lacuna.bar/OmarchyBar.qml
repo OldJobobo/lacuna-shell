@@ -67,6 +67,8 @@ Item {
   // The outer Lacuna frame host injects the optional frame-border treatment
   // so plugin-owned flyouts can continue the same outline around exposed edges.
   property bool frameBorderEnabled: false
+  property bool fullFrameEnabled: false
+  property int resolvedCornerRadius: Math.max(0, Math.round(Style.cornerRadius))
   property bool barOutlineEnabled: false
   property var barOutlineInsetsProvider: null
   property var popoutAvoidanceInsetsProvider: null
@@ -1008,6 +1010,8 @@ Item {
     readonly property color accent: root.accent
     readonly property color urgent: root.urgent
     readonly property bool frameBorderEnabled: root.frameBorderEnabled
+    readonly property bool fullFrameEnabled: root.fullFrameEnabled
+    readonly property int resolvedCornerRadius: root.resolvedCornerRadius
     readonly property color frameBorderColor: root.frameBorderColor
     readonly property string fontFamily: root.fontFamily
     readonly property var shell: root.shell

@@ -16,7 +16,8 @@ PopupWindow {
   property color accentColor: "#89b4fa"
   property int panelWidth: 400
   property int panelHeight: 330
-  property int joinRadius: 13
+  property int joinRadius: bar && bar.resolvedCornerRadius !== undefined ? Math.max(0, Math.round(Number(bar.resolvedCornerRadius) || 0)) : 14
+  property int cornerRadius: joinRadius
   property int margin: 8
 
   readonly property var anchorWindow: anchorItem ? anchorItem.QsWindow.window : null
@@ -186,6 +187,7 @@ PopupWindow {
           panelWidth: root.panelWidth
           panelHeight: root.panelHeight
           joinRadius: root.joinRadius
+          cornerRadius: root.cornerRadius
           panelColor: root.background
           attachmentEdge: root.attachmentEdge
         }
@@ -211,6 +213,7 @@ PopupWindow {
         panelWidth: root.panelWidth
         panelHeight: root.panelHeight
         joinRadius: root.joinRadius
+        cornerRadius: root.cornerRadius
         panelColor: root.background
         attachmentEdge: root.attachmentEdge
       }

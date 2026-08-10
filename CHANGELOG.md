@@ -7,9 +7,13 @@ and the suite version lives in [`VERSION`](VERSION) and is mirrored into every
 
 ## [Unreleased]
 
+## [0.1.0-beta.4] - 2026-08-10
+
 ### Added
 - The Lacuna workspace widget can optionally show only the active workspace
   from Settings → Bar; the existing multi-workspace display remains the default.
+- GitHub prereleases now include a verified Arch package artifact for temporary
+  direct installation when the AUR is unavailable.
 
 ### Changed
 - Documentation now pairs its user-first content with a calm neutral shell,
@@ -17,6 +21,8 @@ and the suite version lives in [`VERSION`](VERSION) and is mirrored into every
   asymmetric product layouts, authentic product crops, and hardened keyboard behavior.
 
 ### Fixed
+- Attached flyouts and frame surfaces now share the universal theme-aware shell
+  corner radius, preserving square attachment edges and consistent molding.
 - Settings toggles now use a bright knob with the neutral track when enabled;
   disabled toggles retain the former accent track with its dark knob.
 - Sidebar button opens now continue to obey the pointer envelope and hide delay
@@ -136,7 +142,8 @@ and the suite version lives in [`VERSION`](VERSION) and is mirrored into every
   single-root release archives, local `makepkg`/`namcap` rehearsal, strict AUR
   publication gates, and a clean-chroot submission runbook.
 
-[Unreleased]: https://github.com/OldJobobo/lacuna-shell/compare/v0.1.0-beta.3...HEAD
+[Unreleased]: https://github.com/OldJobobo/lacuna-shell/compare/v0.1.0-beta.4...HEAD
+[0.1.0-beta.4]: https://github.com/OldJobobo/lacuna-shell/releases/tag/v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/OldJobobo/lacuna-shell/releases/tag/v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/OldJobobo/lacuna-shell/releases/tag/v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/OldJobobo/lacuna-shell/releases/tag/v0.1.0-beta.1

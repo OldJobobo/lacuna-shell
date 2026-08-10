@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.system-stats",
   "name": "Lacuna System Stats",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "author": "Lacuna",
   "description": "Lacuna-styled CPU, memory, and disk status for the Omarchy bar.",
   "kinds": [

@@ -141,10 +141,14 @@ surface. A bordered shell reads as a card; Lacuna wants a recess in space.
 
 The optional global **Frame Border** is the deliberate exception. When enabled,
 its single solid theme-border outline continues around the exposed edges and
-molding curves of attached flyouts. Bar flyouts overlap their bar edge by one
-pixel so the connector fill and curve outlines meet the bar without a
-compositor-sized seam. At the far endpoint, let the bar rail resume one pixel
-beneath the connector cap so half-pixel curve rasterization cannot open a gap.
+molding curves of attached flyouts. Bar-owned flyouts use the same universal
+resolved radius for connector molding and exposed corners; radius zero removes
+the connector reserve and leaves a square attached panel. In standalone mode
+they overlap their bar edge by one pixel so connector fill and curve outlines
+meet the bar without a compositor-sized seam. Full Frame uses zero overlap so
+the flyout and frame-border centerlines coincide. At the far endpoint, let the
+owning border rail resume one pixel beneath the connector cap so half-pixel
+curve rasterization cannot open a gap.
 The attachment edge remains open so each flyout shares
 the frame outline instead of becoming a separately boxed card. When Full Frame is off, the same toggle
 draws only the exposed outside seam of the combined bar/sidebar shell, not a
@@ -159,6 +163,11 @@ surface while preserving the flyout's outer shadow. Neither paint path may conti
 space. When a sidebar
 flyout attaches, this standalone seam uses the same outer connector bounds as
 the full-frame border and stops for the entire molding gap.
+
+The active bar flyout reports one screen-axis attachment interval. Standalone
+bar outline, full-frame border, hosted-sidebar overlay border, and foreground
+ambience repaint all split the matching top/bottom/left/right rail at that same
+interval; no renderer may reconstruct it from popup bounds.
 
 An expanded sidebar is also an exclusion zone for horizontal bar flyouts. If a
 flyout's preferred placement would cross the sidebar molding tangent, shift the
@@ -194,7 +203,9 @@ writes Hyprland `decoration:rounding = 0`; `custom` writes the exact `geometry.c
 (0–32). Thus Lacuna surfaces, trim, and application windows share one live radius, and resetting
 to `theme` resumes inheritance everywhere.
 
-Attached-flyout fill, border, and shadow source consume that one resolved radius; compositor input regions continue to consume the same transactional surface bounds.
+Sidebar-attached and bar-owned flyout fill, connector molding, exposed border,
+and shadow source consume that one resolved radius; compositor input regions
+continue to consume the same transactional surface bounds.
 Frame fill, frame border, frame shadow, video clipping, and vignette clipping consume
 `frameContentRadius = resolvedCornerRadius` from the authoritative frame geometry record. A zero
 radius is a genuinely square path, not a tiny cubic with a rounded stroke join, and disables both

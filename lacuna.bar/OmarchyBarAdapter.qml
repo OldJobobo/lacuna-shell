@@ -12,12 +12,15 @@ Item {
   property var menuToggleHandler: null
   property bool portraitSplitEnabled: true
   property bool frameBorderEnabled: false
+  property bool fullFrameEnabled: false
+  property int resolvedCornerRadius: 0
   property bool barOutlineEnabled: false
   property var barOutlineInsetsProvider: null
   property var popoutAvoidanceInsetsProvider: null
   property var fullscreenSuppressionProvider: null
   property color frameBorderColor: "transparent"
   readonly property var barItem: omarchyBar
+  readonly property var activePopoutBorderGap: omarchyBar.activePopoutBorderGap
 
   function debugBarGeometry() {
     return omarchyBar.debugBarGeometry()
@@ -50,6 +53,8 @@ Item {
     menuToggleHandler: root.menuToggleHandler
     portraitSplitEnabled: root.portraitSplitEnabled
     frameBorderEnabled: root.frameBorderEnabled
+    fullFrameEnabled: root.fullFrameEnabled
+    resolvedCornerRadius: root.resolvedCornerRadius
     barOutlineEnabled: root.barOutlineEnabled
     barOutlineInsetsProvider: root.barOutlineInsetsProvider
     popoutAvoidanceInsetsProvider: root.popoutAvoidanceInsetsProvider

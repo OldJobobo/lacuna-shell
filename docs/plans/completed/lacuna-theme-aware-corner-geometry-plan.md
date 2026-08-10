@@ -6,7 +6,7 @@ Date: 2026-08-10
 
 ## Goal
 
-Make application windows, every exposed Lacuna shell corner, frame molding piece, and sidebar connector follow one universal resolved corner policy.
+Make application windows, every exposed Lacuna shell corner, frame molding piece, sidebar connector, and bar-owned flyout follow one universal resolved corner policy.
 
 By default, Lacuna follows Omarchy's live `Style.cornerRadius`, which reflects the effective Hyprland `decoration:rounding` supplied by the active theme and any user-level Hyprland override. Lacuna settings retain live `square` and `custom` overrides, plus a reset path back to theme inheritance.
 
@@ -47,7 +47,7 @@ Valid modes:
 ### Semantic derived values
 
 - `resolvedCornerRadius`: result of the precedence above and the exact Hyprland window-rounding override for Square/Custom; Theme removes that override.
-- `exposedSurfaceRadius`: the resolved radius used by attached flyout fill, border, and shadow source; input masks retain the same transactional surface bounds.
+- `exposedSurfaceRadius`: the resolved radius used by sidebar-attached and bar-owned flyout fill, border, connector molding, and shadow source; input masks retain the same transactional surface bounds.
 - `frameContentRadius`: `resolvedCornerRadius`.
 - `trimEnabled`: `resolvedCornerRadius > 0`, shared by frame molding and sidebar connector pieces.
 - interior and control radii remain design-style tokens.
@@ -95,7 +95,8 @@ Unknown JSON-safe fields under `geometry` must survive normalization and persist
 - Custom override: values `0..32` apply live and persist.
 - Reset to Theme: subsequent theme and Hyprland rounding changes propagate live.
 - Resolved radius `0`: frame molding and sidebar connector pieces both disable automatically.
-- Positive resolved radius: frame molding and sidebar connector pieces both enable automatically and share that radius.
+- Positive resolved radius: frame molding, sidebar connectors, and bar-flyout connectors all enable automatically and share that radius.
+- Bar-owned flyout attachment gaps align standalone, Full-Frame, hosted-overlay, and foreground-ambience border owners on all four bar edges.
 - Border/shadow geometry and mask bounds consume the same resolved records at transition progress `0`, `0.5`, and `1`.
 - Existing schema-v1/v2 settings and unknown future fields normalize without loss.
 

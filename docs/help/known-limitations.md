@@ -2,7 +2,7 @@
 
 Status: user-facing beta limitations
 
-Lacuna `0.1.0-beta.3` is a public beta. The shell is usable and the lifecycle
+Lacuna `0.1.0-beta.4` is a public beta. The shell is usable and the lifecycle
 tools are designed to protect user state, but the stable support boundary is
 not frozen.
 

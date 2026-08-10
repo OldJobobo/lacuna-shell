@@ -83,8 +83,8 @@ therefore use SemVer prerelease identifiers instead of moving backward to
 `0.0.1`:
 
 1. `0.1.0-beta.1` established the supported public-beta baseline.
-2. `0.1.0-beta.2` and `0.1.0-beta.3` shipped provider-resolution fixes found
-   during beta; additional `0.1.0-beta.N` builds may close further defects.
+2. `0.1.0-beta.2` through `0.1.0-beta.4` shipped field fixes and product
+   refinements; additional `0.1.0-beta.N` builds may close further defects.
 3. `0.1.0-rc.1` freezes product scope and proves the release artifact.
 4. `0.1.0` promotes the verified RC lineage without feature additions.
 
@@ -250,7 +250,7 @@ true:
   suppressed in the bar and dimmed in the flyout. Claude currently reports both
   session and weekly windows through its authenticated usage endpoint. Both
   widgets restore a provider window automatically if it reappears.
-- The suite and manifests currently report `0.1.0-beta.3`; the matching public
+- The suite and manifests currently report `0.1.0-beta.4`; the matching public
   beta package is published and installable. P1 completion and destructive
   lifecycle rehearsal remain separate project gates rather than claims that the
   public beta has not shipped.

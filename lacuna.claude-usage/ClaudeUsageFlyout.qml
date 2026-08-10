@@ -18,8 +18,8 @@ PopupWindow {
   property bool open: false
   property bool reduceMotion: false
   property int panelWidth: 312
-  property int joinRadius: 13
-  property int cornerRadius: 14
+  property int joinRadius: bar && bar.resolvedCornerRadius !== undefined ? Math.max(0, Math.round(Number(bar.resolvedCornerRadius) || 0)) : 14
+  property int cornerRadius: joinRadius
   property int margin: 8
 
   // Usage data (bound from Widget.qml).

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.god-rays-overlay",
   "name": "Lacuna God Rays Overlay",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "author": "Lacuna",
   "description": "Soft bottom-layer volumetric light rays for animated wallpaper ambience.",
   "kinds": [

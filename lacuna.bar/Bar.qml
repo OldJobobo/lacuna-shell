@@ -196,6 +196,17 @@ Item {
     return hostedMenu.frameBorderAttachedFlyoutVisible === true
   }
 
+  function barPopoutBorderGapFor(screen) {
+    var gap = omarchyBar && omarchyBar.activePopoutBorderGap
+      ? omarchyBar.activePopoutBorderGap : ({})
+    if (!gap || Number(gap.length || 0) <= 0) return null
+    if (String(gap.screenName || "") !== ScreenModel.screenName(screen)) return null
+    var edge = String(gap.edge || "")
+    var companionEdge = root.portraitCompanionEdge(screen)
+    if (edge !== root.position && edge !== companionEdge) return null
+    return gap
+  }
+
   function frameScreenKey(screen) {
     var name = ScreenModel.screenName(screen)
     if (name !== "") return name
@@ -534,6 +545,7 @@ Item {
       attachedFlyoutWidth: hostedMenu.frameShadowAttachedFlyoutWidthFor
         ? hostedMenu.frameShadowAttachedFlyoutWidthFor(modelData) : 0
       attachedFlyoutHeight: hostedMenu.frameBorderAttachedFlyoutHeightFor ? hostedMenu.frameBorderAttachedFlyoutHeightFor(modelData) : hostedMenu.frameBorderAttachedFlyoutHeight
+      barPopoutBorderGap: root.barPopoutBorderGapFor(modelData)
       // Frame paint stays clipped at the live sidebar body. The authoritative
       // shadow uses an inverse source mask, so its clip can begin beneath the
       // opaque molding while only the inward blur reaches the reveal.
@@ -561,6 +573,8 @@ Item {
     barConfig: root.barConfig
     portraitSplitEnabled: root.portraitSplitEnabled
     frameBorderEnabled: root.frameBorder
+    fullFrameEnabled: root.frameEnabled
+    resolvedCornerRadius: root.resolvedCornerRadius
     barOutlineEnabled: root.frameBorder && !root.frameEnabled
     barOutlineInsetsProvider: function(screen, barPosition) {
       return root.barOutlineInsetsFor(screen, barPosition)
@@ -647,6 +661,9 @@ Item {
     hostFrameBorderEnabled: root.frameBorder
     hostFrameGeometryProvider: function(screen) {
       return root.lacunaFrameGeometryRecord(screen)
+    }
+    hostBarPopoutBorderGapProvider: function(screen) {
+      return root.barPopoutBorderGapFor(screen)
     }
   }
 }

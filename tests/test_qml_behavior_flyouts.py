@@ -69,6 +69,68 @@ ShellRoot {{
                 self.assertEqual(13, by_edge["left"]["left"])
                 self.assertEqual(0, by_edge["right"]["left"])
 
+    def test_square_and_custom_bar_flyout_geometry_share_universal_radius(self):
+        qml = f"""
+import Quickshell
+import QtQuick
+
+ShellRoot {{
+  id: root
+  property var surface: null
+
+  QtObject {{
+    id: mockBar
+    property bool frameBorderEnabled: true
+    property bool fullFrameEnabled: false
+    property color frameBorderColor: "#78824b"
+  }}
+
+  Component.onCompleted: {{
+    var component = Qt.createComponent("{qml_url('lacuna.clock/BarFlyoutSurface.qml')}", Component.PreferSynchronous)
+    surface = component.createObject(root, {{
+      bar: mockBar,
+      attachmentEdge: "top",
+      panelWidth: 300,
+      panelHeight: 400,
+      joinRadius: 0,
+      cornerRadius: 0
+    }})
+    settle.start()
+  }}
+
+  Timer {{
+    id: settle
+    interval: 30
+    onTriggered: {{
+      var square = {{
+        width: surface.fullWidth,
+        height: surface.fullHeight,
+        left: surface.panelLeft,
+        top: surface.panelTop,
+        strokeRadius: surface.strokeCornerRadius,
+        overlap: surface.attachmentOverlap
+      }}
+      surface.joinRadius = 17
+      surface.cornerRadius = 17
+      var custom = {{ width: surface.fullWidth, height: surface.fullHeight, left: surface.panelLeft, top: surface.panelTop }}
+      mockBar.fullFrameEnabled = true
+      var fullFrameOverlap = surface.attachmentOverlap
+      console.log("BEHAVE " + JSON.stringify({{ square: square, custom: custom, fullFrameOverlap: fullFrameOverlap }}))
+      Qt.quit()
+    }}
+  }}
+}}
+"""
+        output = run_quickshell(qml, timeout=8)
+        require_no_qml_errors(output)
+        result = parse_behave(output)[-1]
+        self.assertEqual(
+            {"width": 300, "height": 400, "left": 0, "top": 0, "strokeRadius": 0, "overlap": 1},
+            result["square"],
+        )
+        self.assertEqual({"width": 334, "height": 417, "left": 17, "top": 17}, result["custom"])
+        self.assertEqual(0, result["fullFrameOverlap"])
+
     def test_expanded_sidebar_displaces_horizontal_flyout_surface(self):
         qml = f"""
 import Quickshell

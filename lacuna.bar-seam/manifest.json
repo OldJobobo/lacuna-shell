@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.bar-seam",
   "name": "Lacuna Bar Seam",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "author": "Lacuna",
   "description": "A breathing pulse separator that brackets a cluster of bar widgets (the lacuna mark).",
   "kinds": [

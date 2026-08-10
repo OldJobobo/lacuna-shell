@@ -95,11 +95,12 @@ def vendored_pairs() -> list[tuple[Path, Path]]:
         if target.exists():
             pairs.append((source, target))
 
+    bar_flyout_surface_source = ROOT / "lacuna.clock/BarFlyoutSurface.qml"
+    for target in sorted(ROOT.glob("lacuna.*/BarFlyoutSurface.qml")):
+        if target != bar_flyout_surface_source and rel(target) not in excluded:
+            pairs.append((bar_flyout_surface_source, target))
+
     for source, target in [
-        (
-            ROOT / "lacuna.clock/BarFlyoutSurface.qml",
-            ROOT / "lacuna.weather/BarFlyoutSurface.qml",
-        ),
         (
             ROOT / "lacuna.clock/LacunaDropShadow.qml",
             ROOT / "lacuna.weather/LacunaDropShadow.qml",

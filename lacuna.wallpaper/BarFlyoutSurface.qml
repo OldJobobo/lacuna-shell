@@ -17,7 +17,7 @@ Item {
   property real borderWidth: 1
   // Popup windows overlap their bar edge by one pixel so the connector fill
   // and its outline meet the bar without a compositor-sized seam.
-  readonly property int attachmentOverlap: 1
+  readonly property int attachmentOverlap: bar && bar.fullFrameEnabled === true ? 0 : 1
   // Let the bar rail resume one pixel beneath the far connector endpoint. This
   // hides the half-pixel Shape cap at the right-hand top-bar join.
   readonly property real borderGapLength: horizontalAttachment
@@ -33,7 +33,7 @@ Item {
   readonly property int panelRight: panelLeft + panelWidth
   readonly property int panelBottom: panelTop + panelHeight
   readonly property real borderInset: Math.max(0, borderWidth / 2)
-  readonly property real strokeCornerRadius: Math.max(0.01, cornerRadius - borderInset)
+  readonly property real strokeCornerRadius: Math.max(0, cornerRadius - borderInset)
 
   implicitWidth: fullWidth
   implicitHeight: fullHeight
@@ -202,7 +202,7 @@ Item {
       strokeColor: root.borderColor
       strokeWidth: root.borderWidth
       capStyle: ShapePath.FlatCap
-      joinStyle: ShapePath.RoundJoin
+      joinStyle: ShapePath.MiterJoin
       startX: root.fullWidth
       startY: root.borderInset
       PathLine { x: root.fullWidth - root.borderInset; y: root.borderInset }
@@ -243,7 +243,7 @@ Item {
       strokeColor: root.borderColor
       strokeWidth: root.borderWidth
       capStyle: ShapePath.FlatCap
-      joinStyle: ShapePath.RoundJoin
+      joinStyle: ShapePath.MiterJoin
       startX: root.fullWidth - root.borderInset
       startY: root.fullHeight - root.borderInset
       PathCubic {
@@ -283,7 +283,7 @@ Item {
       strokeColor: root.borderColor
       strokeWidth: root.borderWidth
       capStyle: ShapePath.FlatCap
-      joinStyle: ShapePath.RoundJoin
+      joinStyle: ShapePath.MiterJoin
       startX: root.borderInset
       startY: root.fullHeight - root.borderInset
       PathCubic {
@@ -323,7 +323,7 @@ Item {
       strokeColor: root.borderColor
       strokeWidth: root.borderWidth
       capStyle: ShapePath.FlatCap
-      joinStyle: ShapePath.RoundJoin
+      joinStyle: ShapePath.MiterJoin
       startX: root.fullWidth - root.borderInset
       startY: root.fullHeight - root.borderInset
       PathCubic {

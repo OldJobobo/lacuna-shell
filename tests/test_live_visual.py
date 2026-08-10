@@ -458,6 +458,18 @@ class LiveVisualTests(unittest.TestCase):
                 run(["grim", str(image)])
                 self.assertGreater(image.stat().st_size, 0, name)
 
+    def test_bar_flyout_universal_corner_visual_matrix(self):
+        cases = (("square", 0), ("custom", 17), ("theme", 14))
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for mode, radius in cases:
+                set_molding_geometry("lacuna", mode, radius)
+                run(["omarchy-shell", "shell", "summon", "lacuna.clock", "{}"])
+                time.sleep(0.65)
+                image = root / f"bar-flyout-{mode}.png"
+                run(["grim", str(image)])
+                self.assertGreater(image.stat().st_size, 0, mode)
+
     def test_transition_pipeline_smoke_states(self):
         # This is intentionally opt-in: it exercises the real menu surface,
         # including sidebar-first disclosure, dimension switches, a newest-wins

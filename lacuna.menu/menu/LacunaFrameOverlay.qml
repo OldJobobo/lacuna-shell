@@ -49,6 +49,7 @@ Item {
   property real flyoutWidth: 0
   property real flyoutHeight: 0
   property bool flyoutVisible: false
+  property var barPopoutBorderGap: null
 
   readonly property bool frameEnabled: mode === "fullframe"
   readonly property bool borderFrameEnabled: frameEnabled || borderOnly
@@ -103,6 +104,27 @@ Item {
     ? borderGeometryRecord.leftEdgeOccupied === true : leftEdgeOccupied
   readonly property bool effectiveRightEdgeOccupied: hasBorderGeometryRecord
     ? borderGeometryRecord.rightEdgeOccupied === true : rightEdgeOccupied
+  readonly property string barGapEdge: barPopoutBorderGap && barPopoutBorderGap.edge
+    ? String(barPopoutBorderGap.edge) : ""
+  readonly property real barGapStart: barPopoutBorderGap
+    ? Math.max(0, Number(barPopoutBorderGap.start) || 0) : 0
+  readonly property real barGapEnd: barPopoutBorderGap
+    ? Math.max(barGapStart, barGapStart + Math.max(0, Number(barPopoutBorderGap.length) || 0)) : barGapStart
+  readonly property bool barGapActive: barGapEdge !== "" && barGapEnd > barGapStart
+  readonly property real horizontalGapMinimum: strokeLeft + borderRadius
+  readonly property real horizontalGapMaximum: strokeRight - borderRadius
+  readonly property real verticalGapMinimum: strokeTop + borderRadius
+  readonly property real verticalGapMaximum: strokeBottom - borderRadius
+  readonly property real clampedBarHorizontalGapStart: Math.max(horizontalGapMinimum, Math.min(horizontalGapMaximum, barGapStart))
+  readonly property real clampedBarHorizontalGapEnd: Math.max(clampedBarHorizontalGapStart, Math.min(horizontalGapMaximum, barGapEnd))
+  readonly property real clampedBarVerticalGapStart: Math.max(verticalGapMinimum, Math.min(verticalGapMaximum, barGapStart))
+  readonly property real clampedBarVerticalGapEnd: Math.max(clampedBarVerticalGapStart, Math.min(verticalGapMaximum, barGapEnd))
+  readonly property bool topBarGapVisible: barGapActive && barGapEdge === "top" && clampedBarHorizontalGapEnd > clampedBarHorizontalGapStart
+  readonly property bool bottomBarGapVisible: barGapActive && barGapEdge === "bottom" && clampedBarHorizontalGapEnd > clampedBarHorizontalGapStart
+  readonly property real topHorizontalLeftEndX: topBarGapVisible ? clampedBarHorizontalGapStart : horizontalGapMaximum
+  readonly property real topHorizontalRightStartX: topBarGapVisible ? clampedBarHorizontalGapEnd : horizontalGapMaximum
+  readonly property real bottomHorizontalRightEndX: bottomBarGapVisible ? clampedBarHorizontalGapEnd : horizontalGapMinimum
+  readonly property real bottomHorizontalLeftStartX: bottomBarGapVisible ? clampedBarHorizontalGapStart : horizontalGapMinimum
   readonly property bool leftAttachmentGapVisible: effectiveLeftEdgeOccupied && flyoutVisible && flyoutHeight > 0
   readonly property bool rightAttachmentGapVisible: effectiveRightEdgeOccupied && flyoutVisible && flyoutHeight > 0
   // The straight frame rail meets the connector at its outer cubic tangents,
@@ -112,13 +134,25 @@ Item {
     ? connectorY : flyoutY
   readonly property real attachedOutlineBottom: connectorVisible && connectorHeight > 0
     ? connectorY + connectorHeight : flyoutY + flyoutHeight
-  readonly property real attachmentGapTop: Math.max(strokeTop + borderRadius, attachedOutlineTop + borderInset)
-  readonly property real attachmentGapBottom: Math.min(strokeBottom - borderRadius, attachedOutlineBottom - borderInset)
+  readonly property real attachmentGapTop: Math.max(verticalGapMinimum, attachedOutlineTop + borderInset)
+  readonly property real attachmentGapBottom: Math.min(verticalGapMaximum, attachedOutlineBottom - borderInset)
   readonly property bool attachmentGapRenderable: attachmentGapBottom > attachmentGapTop + borderWidth
-  readonly property real rightVerticalUpperEndY: rightAttachmentGapVisible && attachmentGapRenderable ? attachmentGapTop : strokeBottom - borderRadius
-  readonly property real rightVerticalLowerStartY: rightAttachmentGapVisible && attachmentGapRenderable ? attachmentGapBottom : strokeBottom - borderRadius
-  readonly property real leftVerticalLowerEndY: leftAttachmentGapVisible && attachmentGapRenderable ? attachmentGapBottom : strokeTop + borderRadius
-  readonly property real leftVerticalUpperStartY: leftAttachmentGapVisible && attachmentGapRenderable ? attachmentGapTop : strokeTop + borderRadius
+  readonly property bool rightBarGapVisible: barGapActive && barGapEdge === "right" && clampedBarVerticalGapEnd > clampedBarVerticalGapStart
+  readonly property bool leftBarGapVisible: barGapActive && barGapEdge === "left" && clampedBarVerticalGapEnd > clampedBarVerticalGapStart
+  readonly property var rightVerticalGaps: composeVerticalGaps(
+    rightAttachmentGapVisible && attachmentGapRenderable, attachmentGapTop, attachmentGapBottom,
+    rightBarGapVisible, clampedBarVerticalGapStart, clampedBarVerticalGapEnd)
+  readonly property var leftVerticalGaps: composeVerticalGaps(
+    leftAttachmentGapVisible && attachmentGapRenderable, attachmentGapTop, attachmentGapBottom,
+    leftBarGapVisible, clampedBarVerticalGapStart, clampedBarVerticalGapEnd)
+  readonly property real rightVerticalUpperEndY: rightVerticalGaps.firstStart
+  readonly property real rightVerticalLowerStartY: rightVerticalGaps.firstEnd
+  readonly property real rightVerticalSecondUpperEndY: rightVerticalGaps.secondStart
+  readonly property real rightVerticalSecondLowerStartY: rightVerticalGaps.secondEnd
+  readonly property real leftVerticalLowerEndY: leftVerticalGaps.secondEnd
+  readonly property real leftVerticalUpperStartY: leftVerticalGaps.secondStart
+  readonly property real leftVerticalSecondLowerEndY: leftVerticalGaps.firstEnd
+  readonly property real leftVerticalSecondUpperStartY: leftVerticalGaps.firstStart
   readonly property real horizontalBarShadowX: leftEdgeOccupied ? Math.max(0, sidebarX + sidebarOccupiedWidth) : 0
   readonly property real horizontalBarShadowRightInset: rightEdgeOccupied ? Math.max(0, effectiveFrameWidth - sidebarX + (sidebarMoldingVisible ? sidebarMoldingWidth : 0)) : 0
   readonly property real horizontalBarShadowWidth: Math.max(0, effectiveFrameWidth - horizontalBarShadowX - horizontalBarShadowRightInset + barEdgeCasterOverrun)
@@ -131,6 +165,27 @@ Item {
   function smoothEdgeProgress(value) {
     var p = Math.max(0, Math.min(1, value))
     return p * p * p * (p * (p * 6 - 15) + 10)
+  }
+
+  function composeVerticalGaps(firstVisible, firstStart, firstEnd, secondVisible, secondStart, secondEnd) {
+    var gaps = []
+    if (firstVisible) gaps.push({ start: firstStart, end: firstEnd })
+    if (secondVisible) gaps.push({ start: secondStart, end: secondEnd })
+    gaps.sort(function(a, b) { return a.start - b.start })
+    if (gaps.length === 0) {
+      return { firstStart: verticalGapMaximum, firstEnd: verticalGapMaximum,
+        secondStart: verticalGapMaximum, secondEnd: verticalGapMaximum }
+    }
+    if (gaps.length === 1) {
+      return { firstStart: gaps[0].start, firstEnd: gaps[0].end,
+        secondStart: verticalGapMaximum, secondEnd: verticalGapMaximum }
+    }
+    if (gaps[1].start <= gaps[0].end) {
+      return { firstStart: gaps[0].start, firstEnd: Math.max(gaps[0].end, gaps[1].end),
+        secondStart: verticalGapMaximum, secondEnd: verticalGapMaximum }
+    }
+    return { firstStart: gaps[0].start, firstEnd: gaps[0].end,
+      secondStart: gaps[1].start, secondEnd: gaps[1].end }
   }
 
   Item {
@@ -402,10 +457,9 @@ Item {
       startX: root.strokeLeft + root.borderRadius
       startY: root.strokeTop
 
-      PathLine {
-        x: root.strokeRight - root.borderRadius
-        y: root.strokeTop
-      }
+      PathLine { x: root.topHorizontalLeftEndX; y: root.strokeTop }
+      PathMove { x: root.topHorizontalRightStartX; y: root.strokeTop }
+      PathLine { x: root.strokeRight - root.borderRadius; y: root.strokeTop }
       PathCubic {
         x: root.strokeRight
         y: root.strokeTop + root.borderRadius
@@ -418,14 +472,10 @@ Item {
         x: root.strokeRight
         y: root.rightVerticalUpperEndY
       }
-      PathMove {
-        x: root.strokeRight
-        y: root.rightVerticalLowerStartY
-      }
-      PathLine {
-        x: root.strokeRight
-        y: root.strokeBottom - root.borderRadius
-      }
+      PathMove { x: root.strokeRight; y: root.rightVerticalLowerStartY }
+      PathLine { x: root.strokeRight; y: root.rightVerticalSecondUpperEndY }
+      PathMove { x: root.strokeRight; y: root.rightVerticalSecondLowerStartY }
+      PathLine { x: root.strokeRight; y: root.strokeBottom - root.borderRadius }
       PathCubic {
         x: root.strokeRight - root.borderRadius
         y: root.strokeBottom
@@ -434,10 +484,9 @@ Item {
         control2X: root.strokeRight - root.borderRadius * (1 - root.curveKappa)
         control2Y: root.strokeBottom
       }
-      PathLine {
-        x: root.strokeLeft + root.borderRadius
-        y: root.strokeBottom
-      }
+      PathLine { x: root.bottomHorizontalRightEndX; y: root.strokeBottom }
+      PathMove { x: root.bottomHorizontalLeftStartX; y: root.strokeBottom }
+      PathLine { x: root.strokeLeft + root.borderRadius; y: root.strokeBottom }
       PathCubic {
         x: root.strokeLeft
         y: root.strokeBottom - root.borderRadius
@@ -446,18 +495,11 @@ Item {
         control2X: root.strokeLeft
         control2Y: root.strokeBottom - root.borderRadius * (1 - root.curveKappa)
       }
-      PathLine {
-        x: root.strokeLeft
-        y: root.leftVerticalLowerEndY
-      }
-      PathMove {
-        x: root.strokeLeft
-        y: root.leftVerticalUpperStartY
-      }
-      PathLine {
-        x: root.strokeLeft
-        y: root.strokeTop + root.borderRadius
-      }
+      PathLine { x: root.strokeLeft; y: root.leftVerticalLowerEndY }
+      PathMove { x: root.strokeLeft; y: root.leftVerticalUpperStartY }
+      PathLine { x: root.strokeLeft; y: root.leftVerticalSecondLowerEndY }
+      PathMove { x: root.strokeLeft; y: root.leftVerticalSecondUpperStartY }
+      PathLine { x: root.strokeLeft; y: root.strokeTop + root.borderRadius }
       PathCubic {
         x: root.strokeLeft + root.borderRadius
         y: root.strokeTop

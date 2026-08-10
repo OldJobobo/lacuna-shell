@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.media-player-video",
   "name": "Lacuna Media Player Video",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "author": "Lacuna",
   "description": "Wallpaper-layer video companion for Lacuna Media Player.",
   "kinds": [

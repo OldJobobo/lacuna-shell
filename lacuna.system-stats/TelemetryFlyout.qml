@@ -25,7 +25,8 @@ PopupWindow {
   property color urgentColor: bar ? bar.urgent : "#d42b5b"
   property int panelWidth: 520
   property int panelHeight: 620
-  property int joinRadius: 13
+  property int joinRadius: bar && bar.resolvedCornerRadius !== undefined ? Math.max(0, Math.round(Number(bar.resolvedCornerRadius) || 0)) : 14
+  property int cornerRadius: joinRadius
   property int margin: 8
   property bool shadowEnabled: false
   property int shadowOffsetX: 2
@@ -215,7 +216,7 @@ PopupWindow {
         anchors.fill: parent
         visible: root.shadowEnabled
         BarFlyoutSurface { bar: root.bar; x: root.shadowLeftMargin
-          y: root.shadowTopMargin; panelWidth: root.panelWidth; panelHeight: root.panelHeight; joinRadius: root.joinRadius; panelColor: root.background; attachmentEdge: root.attachmentEdge }
+          y: root.shadowTopMargin; panelWidth: root.panelWidth; panelHeight: root.panelHeight; joinRadius: root.joinRadius; cornerRadius: root.cornerRadius; panelColor: root.background; attachmentEdge: root.attachmentEdge }
       }
       LacunaDropShadow {
         source: shadowSource; shadowEnabled: root.shadowEnabled; shadowColor: "black"; shadowOpacity: 0.62
@@ -226,7 +227,7 @@ PopupWindow {
         id: surface
         x: root.shadowLeftMargin
         y: root.shadowTopMargin
-        panelWidth: root.panelWidth; panelHeight: root.panelHeight; joinRadius: root.joinRadius; panelColor: root.background
+        panelWidth: root.panelWidth; panelHeight: root.panelHeight; joinRadius: root.joinRadius; cornerRadius: root.cornerRadius; panelColor: root.background
         attachmentEdge: root.attachmentEdge
       }
 

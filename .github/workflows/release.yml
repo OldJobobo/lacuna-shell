@@ -75,8 +75,8 @@ jobs:
       - name: Validate manifest/VERSION parity
         run: python3 -m pytest tests/test_manifest_contracts.py -q
 
-      - name: Rehearse AUR package
-        run: scripts/rehearse-aur-package
+      - name: Build and rehearse Arch package
+        run: scripts/rehearse-aur-package --output-dir dist
 
       - name: Build deterministic archive and checksums
         run: scripts/build-release-archive --check-reproducible
@@ -90,3 +90,4 @@ jobs:
             dist/*.tar.gz
             dist/*.tar.gz.sha256
             dist/*.tar.gz.inventory.json
+            dist/*.pkg.tar.zst

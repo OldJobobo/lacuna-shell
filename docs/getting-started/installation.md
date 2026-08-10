@@ -2,13 +2,21 @@
 
 Status: user guide for the latest beta
 
-The AUR package is the recommended path. It gives Omarchy ownership of the
-installed package while Lacuna's guided installer safely applies the shell for
-your user.
+The packaged install is the recommended path. It gives the system package
+manager ownership of Lacuna while the guided installer safely applies the shell
+for your user.
 
-## Install from the AUR
+## Install the package
 
-Install the package through Omarchy:
+The AUR is temporarily unavailable. Install the verified package attached to
+the GitHub prerelease instead:
+
+```bash
+curl -fLO https://github.com/OldJobobo/lacuna-shell/releases/download/v0.1.0-beta.4/lacuna-shell-0.1.0beta.4-1-any.pkg.tar.zst
+sudo pacman -U ./lacuna-shell-0.1.0beta.4-1-any.pkg.tar.zst
+```
+
+When the AUR is available again, the normal command is:
 
 ```bash
 omarchy pkg aur add lacuna-shell
@@ -25,7 +33,8 @@ what it will install and activate. It snapshots `shell.json` and Lacuna's
 `settings.json`, stages and verifies the plugin set, applies the curated layout,
 and reloads the shell.
 
-The `0.1.0beta.3-1` package is published and installable.
+The temporary direct package and future AUR updates use the same
+`lacuna-shell` package identity, so pacman can upgrade it normally.
 
 ### Preview without changing the shell
 

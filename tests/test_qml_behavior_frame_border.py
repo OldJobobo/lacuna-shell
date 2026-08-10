@@ -472,6 +472,75 @@ ShellRoot {{
             self.assertGreater(result["joinTop"], 0)
             self.assertTrue(result["hiddenForBottomBar"])
 
+    def test_bar_popout_gap_splits_every_frame_border_edge(self):
+        qml = f"""
+import Quickshell
+import QtQuick
+
+ShellRoot {{
+  id: root
+  property var border: null
+
+  Component.onCompleted: {{
+    var component = Qt.createComponent("{qml_url('lacuna.bar/LacunaFrameBorderWindow.qml')}", Component.PreferSynchronous)
+    border = component.createObject(root, {{
+      width: 800,
+      height: 600,
+      active: true,
+      barPosition: "top",
+      barSize: 32,
+      frameThickness: 8,
+      frameRadius: 20,
+      moldingPieces: true
+    }})
+    settle.start()
+  }}
+
+  Timer {{
+    id: settle
+    interval: 30
+    onTriggered: {{
+      border.barPopoutBorderGap = {{ edge: "top", start: 200, length: 300 }}
+      var top = {{ before: border.topHorizontalLeftEndX, after: border.topHorizontalRightStartX }}
+      border.barPopoutBorderGap = {{ edge: "bottom", start: 200, length: 300 }}
+      var bottom = {{ before: border.bottomHorizontalRightEndX, after: border.bottomHorizontalLeftStartX }}
+      border.barPopoutBorderGap = {{ edge: "right", start: 150, length: 250 }}
+      var right = {{ before: border.rightVerticalUpperEndY, after: border.rightVerticalLowerStartY }}
+      border.barPopoutBorderGap = {{ edge: "left", start: 150, length: 250 }}
+      var left = {{ before: border.leftVerticalSecondLowerEndY, after: border.leftVerticalSecondUpperStartY }}
+      border.rightEdgeOccupied = true
+      border.attachedFlyoutVisible = true
+      border.attachedFlyoutY = 250
+      border.attachedFlyoutHeight = 100
+      border.barPopoutBorderGap = {{ edge: "right", start: 100, length: 50 }}
+      var coexist = {{
+        firstStart: border.rightVerticalUpperEndY,
+        firstEnd: border.rightVerticalLowerStartY,
+        secondStart: border.rightVerticalSecondUpperEndY,
+        secondEnd: border.rightVerticalSecondLowerStartY
+      }}
+      border.frameRadius = 0
+      border.moldingPieces = false
+      var squareRadius = border.borderRadius
+      console.log("BEHAVE " + JSON.stringify({{ top: top, bottom: bottom, right: right, left: left, coexist: coexist, squareRadius: squareRadius }}))
+      Qt.quit()
+    }}
+  }}
+}}
+"""
+        output = run_quickshell(qml, timeout=8)
+        require_no_qml_errors(output)
+        result = parse_behave(output)[-1]
+        self.assertEqual({"before": 200, "after": 500}, result["top"])
+        self.assertEqual({"before": 500, "after": 200}, result["bottom"])
+        self.assertEqual({"before": 150, "after": 400}, result["right"])
+        self.assertEqual({"before": 400, "after": 150}, result["left"])
+        self.assertEqual(
+            {"firstStart": 100, "firstEnd": 150, "secondStart": 250.5, "secondEnd": 349.5},
+            result["coexist"],
+        )
+        self.assertEqual(0, result["squareRadius"])
+
     def test_panel_border_lower_molding_reaches_connector_outer_edge(self):
         qml = f"""
 import Quickshell

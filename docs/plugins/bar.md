@@ -25,9 +25,13 @@ theme border around their exposed edges and leave the bar attachment edge open,
 matching sidebar-attached flyouts. The border toggle is independent of Full
 Frame: with Full Frame off, the bar and sidebar share one exposed seam rather
 than boxing either surface. The bar rail stops at the sidebar molding tangent,
-and the sidebar owns the curve plus its vertical content edge. Open bar flyouts
-report their connector span to the owning bar window so this rail also stops at
-both connector tangents and returns only after the attachment opening.
+and the sidebar owns the curve plus its vertical content edge. Every rich bar
+flyout receives the universal Shell Corners radius through its injected `bar`
+context; Square removes both connector reserve and exposed rounding, while
+Theme/Custom use the same radius as windows, frame, and sidebar flyouts. Open
+bar flyouts report their connector span once. The standalone bar outline,
+Full-Frame border, hosted-sidebar border owner, and foreground ambience repaint
+all stop at those connector tangents and resume after the attachment opening.
 
 ## Portrait Split
 

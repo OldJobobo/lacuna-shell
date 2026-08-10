@@ -38,6 +38,7 @@ PanelWindow {
   property real attachedFlyoutY: 0
   property real attachedFlyoutWidth: 0
   property real attachedFlyoutHeight: 0
+  property var barPopoutBorderGap: null
   property real paintOcclusionLeft: 0
   property real paintOcclusionRight: 0
   property real shadowOcclusionLeft: 0
@@ -441,6 +442,7 @@ PanelWindow {
           attachedFlyoutVisible: root.attachedFlyoutVisible
           attachedFlyoutY: root.attachedFlyoutY
           attachedFlyoutHeight: root.attachedFlyoutHeight
+          barPopoutBorderGap: root.barPopoutBorderGap
         }
       }
     }

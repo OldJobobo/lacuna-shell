@@ -23,6 +23,7 @@ Item {
   property int hostBarSize: 0
   property bool hostFrameBorderEnabled: false
   property var hostFrameGeometryProvider: null
+  property var hostBarPopoutBorderGapProvider: null
   property string pluginId: manifest && manifest.id ? manifest.id : "lacuna.menu"
   property var menuState: localMenuState
   property var flyoutContentRefs: ({})
@@ -373,6 +374,20 @@ Item {
       && frameMode === "fullframe"
       && typeof hostFrameGeometryProvider === "function"
       && MonitorPolicy.isSidebarScreen(sidebarScreens, screen)
+  }
+
+  function hostBarPopoutBorderGapFor(screen) {
+    if (!ownsHostFrameBorderOnScreen(screen)
+        || typeof hostBarPopoutBorderGapProvider !== "function") return null
+    var source = hostBarPopoutBorderGapProvider(screen)
+    if (!source || typeof source !== "object") return null
+    var edge = String(source.edge || "")
+    var axisInset = edge === "top" || edge === "bottom" ? visualLeftInset : visualTopInset
+    return {
+      edge: edge,
+      start: Number(source.start || 0) - axisInset,
+      length: Math.max(0, Number(source.length || 0))
+    }
   }
 
   function hostFrameGeometryFor(screen) {
@@ -2746,6 +2761,7 @@ Item {
       flyoutWidth: panelHost.flyoutMaskWidth
       flyoutHeight: panelHost.flyoutMaskHeight
       flyoutVisible: root.flyoutVisibleOnScreen(modelData)
+      barPopoutBorderGap: root.hostBarPopoutBorderGapFor(modelData)
     }
 
     LacunaPanelUnifiedSurface {

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.nightlight",
   "name": "Lacuna Night Light",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "author": "Lacuna",
   "description": "Lacuna-styled night light status module for the Omarchy bar.",
   "kinds": [

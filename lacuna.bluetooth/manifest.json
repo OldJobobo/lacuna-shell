@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.bluetooth",
   "name": "Lacuna Bluetooth",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "author": "Lacuna",
   "description": "Lacuna-styled Bluetooth control for the Omarchy bar.",
   "kinds": [

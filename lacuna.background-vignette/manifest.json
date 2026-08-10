@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.background-vignette",
   "name": "Lacuna Background Vignette",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "author": "Lacuna",
   "description": "Configurable wallpaper-layer vignette drawn above Lacuna background animations.",
   "kinds": [

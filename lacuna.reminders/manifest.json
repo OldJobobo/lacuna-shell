@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.reminders",
   "name": "Lacuna Reminders",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "author": "Lacuna",
   "description": "Lacuna heads-up indicator for active Omarchy reminders.",
   "kinds": [
