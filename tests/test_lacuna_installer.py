@@ -1280,7 +1280,13 @@ with module.installer_transaction_lock():
                 "power": {"instantRestart": True, "futurePower": "keep"},
                 "futureTop": {"keep": [1, 2, 3]},
             }
-            settings_path.write_text(json.dumps(protected) + "\n", encoding="utf-8")
+            settings_input = dict(protected)
+            settings_input["geometry"] = {
+                "cornerMode": "square",
+                "cornerRadius": 7,
+                "futureGeometry": {"keep": True},
+            }
+            settings_path.write_text(json.dumps(settings_input) + "\n", encoding="utf-8")
 
             external = {
                 "media-player.json": b'{"favorites":["fav"],"queue":["queued"],"history":["played"],"presentationMode":"background","videoQuality":"stable","providerFilter":"jellyfin"}\n',
@@ -1322,7 +1328,10 @@ with module.installer_transaction_lock():
             self.assertEqual(shell["futureShell"], {"keep": True})
             for key in module.RESET_PRESERVED_SETTINGS_KEYS:
                 self.assertEqual(settings[key], protected[key])
-            self.assertEqual(settings["version"], 2)
+            self.assertEqual(settings["version"], 3)
+            self.assertEqual("theme", settings["geometry"]["cornerMode"])
+            self.assertEqual(14, settings["geometry"]["cornerRadius"])
+            self.assertEqual({"keep": True}, settings["geometry"]["futureGeometry"])
             self.assertEqual(settings["sidebar"]["defaultMode"], "off")
             self.assertEqual(settings["sidebar"]["futureNested"], {"keep": True})
             self.assertIs(settings["power"]["instantRestart"], False)

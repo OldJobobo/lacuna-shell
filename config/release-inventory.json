@@ -42,13 +42,16 @@
       "stability": "beta",
       "bundle": "ambience",
       "standalone": false,
-      "requires": [],
+      "requires": [
+        "lacuna.state"
+      ],
       "recommends": [],
       "entryPoints": {
         "overlay": "Overlay.qml"
       },
       "files": [
         "AmbienceStack.qml",
+        "ForegroundFrameBorder.qml",
         "FullscreenGuard.qml",
         "Overlay.qml",
         "effects/AuroraDriftEffect.qml",

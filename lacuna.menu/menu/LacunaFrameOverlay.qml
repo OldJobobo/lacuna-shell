@@ -94,10 +94,11 @@ Item {
   readonly property real strokeRight: borderRight - borderInset
   readonly property real strokeBottom: borderBottom - borderInset
   readonly property real borderGeometryRadius: hasBorderGeometryRecord
-    ? Math.max(0, Number(borderGeometryRecord.contentRadius) || 0) : moldingSize
+    ? Math.max(0, Number(borderGeometryRecord.contentRadius) || 0)
+    : (moldingPieces ? moldingSize : 0)
   readonly property real borderRadius: borderGeometryRadius > 0
-    ? Math.max(0.01, Math.min(borderGeometryRadius, (borderRight - borderLeft) / 2, (borderBottom - borderTop) / 2) - borderInset)
-    : 0.01
+    ? Math.max(0, Math.min(borderGeometryRadius, (borderRight - borderLeft) / 2, (borderBottom - borderTop) / 2) - borderInset)
+    : 0
   readonly property bool effectiveLeftEdgeOccupied: hasBorderGeometryRecord
     ? borderGeometryRecord.leftEdgeOccupied === true : leftEdgeOccupied
   readonly property bool effectiveRightEdgeOccupied: hasBorderGeometryRecord
@@ -397,7 +398,7 @@ Item {
       strokeColor: root.borderColor
       strokeWidth: root.borderWidth
       capStyle: ShapePath.FlatCap
-      joinStyle: ShapePath.RoundJoin
+      joinStyle: ShapePath.MiterJoin
       startX: root.strokeLeft + root.borderRadius
       startY: root.strokeTop
 
@@ -470,7 +471,7 @@ Item {
     ShapePath {
       fillColor: "transparent"
       strokeColor: root.borderColor
-      strokeWidth: root.moldingBorderWidth
+      strokeWidth: root.borderRadius > 0 ? root.moldingBorderWidth : 0
       capStyle: ShapePath.FlatCap
 
       startX: root.strokeRight - root.borderRadius

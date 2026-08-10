@@ -46,8 +46,7 @@ def frame_geometry(
     hole_bottom = max(hole_y + 1, height - bottom_inset)
     hole_width = max(1, hole_right - hole_x)
     hole_height = max(1, hole_bottom - hole_y)
-    min_arc_radius = 0.01
-    hole_radius = max(min_arc_radius, min(r, hole_width / 2, hole_height / 2))
+    hole_radius = max(0, min(r, hole_width / 2, hole_height / 2))
     is_renderable = active and width > 0 and height > 0 and hole_width > 0 and hole_height > 0
     caster_hole_x = hole_x if is_renderable else (max(0, bar_size) if left_bar else 0)
     caster_hole_y = hole_y if is_renderable else (max(0, bar_size) if top_bar or top_occupied else 0)
@@ -148,7 +147,7 @@ def frame_border_geometry(
     border_inset = max(0, border_width / 2)
     border_top = base["holeY"] + border_inset
     border_bottom = base["holeBottom"] - border_inset
-    border_radius = max(0.01, base["holeRadius"] - border_inset)
+    border_radius = max(0, base["holeRadius"] - border_inset)
     left_gap_visible = left_occupied > 0 and attached_flyout_visible and attached_flyout_height > 0
     right_gap_visible = right_occupied > 0 and attached_flyout_visible and attached_flyout_height > 0
     gap_top = max(border_top + border_radius, attached_flyout_y + border_inset)
@@ -450,6 +449,8 @@ class QmlGeometryTests(unittest.TestCase):
         self.assertIn("function pixelSnap(value)", host)
         self.assertIn("connectorWidth: pixelSnap(interpolateValue", host)
         self.assertIn("connectorOverlap: pixelSnap(interpolateValue", host)
+        self.assertIn("panelRadius: pixelSnap(interpolateValue", host)
+        self.assertIn("readonly property real effectivePanelRadius", host)
         self.assertIn("readonly property bool effectiveConnectorVisible", host)
         self.assertIn("effectiveConnectorWidth > connectorEpsilon", host)
         self.assertIn("readonly property real flyoutMaskWidth: flyoutRenderable ? flyoutCurrentWidth : 0", host)
@@ -496,8 +497,10 @@ class QmlGeometryTests(unittest.TestCase):
             "openX: panelHost.flyoutX",
             "connectorMaskWidth: panelHost.connectorMaskWidth",
             "flyoutMaskWidth: panelHost.flyoutMaskWidth",
+            "panelRadius: panelHost.effectivePanelRadius",
         ):
             self.assertIn(binding, menu)
+        self.assertEqual(3, menu.count("panelRadius: panelHost.effectivePanelRadius"))
         self.assertIn("function maxFlyoutExtentFor(screen)", menu)
         self.assertIn("flyoutGeometryFor(screen, kinds[i], 0).width", menu)
         self.assertIn("connectorWidth + flyoutGeometryFor(screen, kinds[i], connectorWidth).width", menu)
@@ -520,10 +523,52 @@ class QmlGeometryTests(unittest.TestCase):
                 lane = reserved - effective_connector
                 self.assertEqual(reserved, effective_connector + lane)
 
-    def test_frame_molding_is_independent_from_flyout_connectors(self):
+    def test_theme_aware_corner_policy_feeds_frame_and_attached_surfaces(self):
+        bar = read("lacuna.bar/Bar.qml")
         window = read("lacuna.menu/menu/MenuWindow.qml")
+        tokens = read("lacuna.menu/services/DesignTokens.qml")
+        panel_border = read("lacuna.menu/menu/LacunaPanelBorder.qml")
+        frame_border = read("lacuna.bar/LacunaFrameBorderWindow.qml")
+        overlay = read("lacuna.menu/menu/LacunaFrameOverlay.qml")
+
+        for host in (bar, window):
+            self.assertIn('cornerMode === "square" ? 0', host)
+            self.assertIn('cornerMode === "custom" ? customCornerRadius : Math.max(0, Math.round(Style.cornerRadius))', host)
+            self.assertIn("readonly property int frameRadius: resolvedCornerRadius", host)
+            self.assertNotIn("numberSetting(frameSettings.radius, 14)", host)
+
+        self.assertIn("exposedCornerRadius: root.resolvedCornerRadius", window)
+        self.assertIn("readonly property int attachedFlyoutRadius: designTokens.panelRadius", window)
+        self.assertIn("readonly property int lacunaJoinRadius: designTokens.joinRadius", window)
+        self.assertIn("property real exposedCornerRadius: -1", tokens)
+        self.assertIn("? Math.max(0, Math.round(exposedCornerRadius))", tokens)
+        self.assertIn("readonly property int joinRadius: panelRadius", tokens)
+        self.assertIn("readonly property real strokeRadius: Math.max(0,", panel_border)
+        self.assertIn("joinStyle: ShapePath.MiterJoin", panel_border)
+        self.assertIn("readonly property real borderRadius: Math.max(0, holeRadius - borderInset)", frame_border)
+        self.assertIn("strokeWidth: root.borderRadius > 0 ? root.moldingBorderWidth : 0", frame_border)
+        self.assertIn("strokeWidth: root.borderRadius > 0 ? root.moldingBorderWidth : 0", overlay)
+        self.assertIn(": (moldingPieces ? moldingSize : 0)", overlay)
+        frame_window = read("lacuna.bar/LacunaFrameWindow.qml")
+        self.assertIn("readonly property real minArcRadius: 0", frame_window)
+        self.assertIn("? Math.max(0, Math.min(shadowRecordRadius", frame_window)
+        self.assertIn("shadowGeometryRecord: root.lacunaFrameGeometryRecord(modelData)", bar)
+
+    def test_universal_corner_radius_owns_frame_and_connector_molding(self):
+        bar = read("lacuna.bar/Bar.qml")
+        window = read("lacuna.menu/menu/MenuWindow.qml")
+        settings = read("lacuna.menu/settings/SettingsWindow.qml")
         overlay = read("lacuna.menu/menu/LacunaFrameOverlay.qml")
         surface = read("lacuna.menu/menu/MenuSurface.qml")
+        self.assertIn("readonly property bool frameMoldingPieces: resolvedCornerRadius > 0", bar)
+        self.assertIn("readonly property bool universalMoldingEnabled: resolvedCornerRadius > 0", window)
+        self.assertIn("readonly property bool effectiveConnectorPieces: sidebarSurfaceVisible && universalMoldingEnabled && !panelOnRight", window)
+        self.assertIn("readonly property bool frameMoldingPieces: universalMoldingEnabled", window)
+        self.assertNotIn("sidebarState.connectorPieces && !panelOnRight", window)
+        self.assertNotIn('"Sidebar Connectors"', settings)
+        self.assertNotIn('"Frame Molding Pieces"', settings)
+        self.assertNotIn('entry.action === "toggle-sidebar-connectors"', window)
+        self.assertNotIn('entry.action === "toggle-frame-molding-pieces"', window)
         self.assertIn("moldingPieces: root.frameMoldingPieces", window)
         self.assertIn("sidebarMoldingVisible: menuWindow.sidebarRenderable && root.frameMoldingPieces", window)
         self.assertIn("frameMoldingPieces: root.frameMoldingPieces", window)
@@ -535,7 +580,6 @@ class QmlGeometryTests(unittest.TestCase):
 
         # The top bar rail terminates at the sidebar molding tangent. Opening a
         # wider flyout connector lower on that edge must not move the tangent.
-        bar = read("lacuna.bar/Bar.qml")
         self.assertNotIn("surfaceInset = Math.max(surfaceInset, Number(panelGeometry.connectorWidth || 0))", bar)
         panel_width = 340
         frame_radius = 14
@@ -564,7 +608,7 @@ class QmlGeometryTests(unittest.TestCase):
             "function lacunaFrameGeometryRecord(screen)",
             "function lacunaTargetFrameGeometryRecord(screen)",
             "geometryRecord: root.lacunaFrameGeometryRecord(modelData)",
-            "shadowGeometryRecord: root.lacunaTargetFrameGeometryRecord(modelData)",
+            "shadowGeometryRecord: root.lacunaFrameGeometryRecord(modelData)",
             "revision: root.lacunaFrameGeometryRevision",
         ):
             self.assertIn(contract, bar)

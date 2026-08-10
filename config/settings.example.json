@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "designStyle": "lacuna",
   "designStyles": {
     "lacuna": {},
@@ -7,6 +7,10 @@
     "material": {}
   },
   "colorProfile": "semantic",
+  "geometry": {
+    "cornerMode": "theme",
+    "cornerRadius": 14
+  },
   "compact": false,
   "barSizeMode": "theme",
   "quickLaunchLayout": "list",
@@ -49,8 +53,6 @@
     "defaultMode": "off",
     "collapsed": false,
     "exclusive": true,
-    "connectorPieces": true,
-    "cornerPieces": true,
     "monitorPolicy": "auto",
     "monitorNames": [],
     "autoHide": {
@@ -117,10 +119,7 @@
     "reserveMode": "auto",
     "shadow": false,
     "border": false,
-    "moldingPieces": true,
-    "roundedContentCorners": true,
     "thickness": 8,
-    "radius": 14,
     "shadowDirection": "bottom_right",
     "shadowOffsetX": 2,
     "shadowOffsetY": 3

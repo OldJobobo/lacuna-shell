@@ -118,9 +118,9 @@ ShellRoot {{
     id: probe
     interval: 30
     onTriggered: {{
-      var a = host.makePanelGeometry(80, 560, 620, 18, 33, false)
-      var b = host.makePanelGeometry(160, 420, 440, 0, 0, false)
-      var c = host.makePanelGeometry(40, 600, 500, 18, 33, false)
+      var a = host.makePanelGeometry(80, 560, 620, 18, 33, false, 18)
+      var b = host.makePanelGeometry(160, 420, 440, 0, 0, false, 0)
+      var c = host.makePanelGeometry(40, 600, 500, 18, 33, false, 18)
       host.requestPanelGeometry(a, "A")
       host.geometryTransitionEnabled = true
       host.requestPanelGeometry(b, "B")
@@ -146,6 +146,8 @@ ShellRoot {{
         reversalFrom: reversalFrom,
         revisionAdvanced: host.panelGeometryRevision > beforeRevision,
         visibleDuringConnectorExit: visibleDuringConnectorExit,
+        interruptedRadiusMatchesConnector: interrupted.panelRadius === interrupted.connectorWidth,
+        middleRadiusMatchesConnector: newestMiddle.panelRadius === newestMiddle.connectorWidth,
         reducedTarget: host.copyPanelGeometry(host.effectivePanelGeometry),
         reducedInactive: !host.panelGeometryTransitionActive,
         connectorHiddenAtZero: !host.effectiveConnectorVisible
@@ -164,6 +166,7 @@ ShellRoot {{
             "flyoutHeight": 548,
             "connectorWidth": 11,
             "connectorOverlap": 20,
+            "panelRadius": 11,
             "anchorRight": False,
         }
         for key, expected in expected_interrupted.items():
@@ -179,6 +182,7 @@ ShellRoot {{
             "flyoutHeight": 524,
             "connectorWidth": 15,
             "connectorOverlap": 27,
+            "panelRadius": 15,
             "anchorRight": False,
         }
         for key, expected in expected_middle.items():
@@ -189,7 +193,10 @@ ShellRoot {{
         self.assertEqual(row["newestMiddle"], row["reversalFrom"], output[-2000:])
         self.assertTrue(row["revisionAdvanced"], output[-2000:])
         self.assertTrue(row["visibleDuringConnectorExit"], output[-2000:])
+        self.assertTrue(row["interruptedRadiusMatchesConnector"], output[-2000:])
+        self.assertTrue(row["middleRadiusMatchesConnector"], output[-2000:])
         self.assertEqual(0, row["reducedTarget"]["connectorWidth"], output[-2000:])
+        self.assertEqual(0, row["reducedTarget"]["panelRadius"], output[-2000:])
         self.assertTrue(row["reducedInactive"], output[-2000:])
         self.assertTrue(row["connectorHiddenAtZero"], output[-2000:])
 
@@ -216,7 +223,7 @@ ShellRoot {{
       flyoutProgress: 0.5,
       geometryTransitionEnabled: false
     }})
-    host.requestPanelGeometry(host.makePanelGeometry(60, 560, 620, 18, 33, false), "open")
+    host.requestPanelGeometry(host.makePanelGeometry(60, 560, 620, 18, 33, false, 18), "open")
     var middle = {{
       connectorWidth: host.connectorMaskWidth,
       connectorHeight: host.connectorMaskHeight,

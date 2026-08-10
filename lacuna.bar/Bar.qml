@@ -22,15 +22,20 @@ Item {
   readonly property int barSize: Math.round(vertical ? Style.bar.sizeVertical : Style.bar.sizeHorizontal)
   readonly property var lacunaState: resolveLacunaState()
   readonly property var lacunaSettings: lacunaState && lacunaState.data ? lacunaState.data : ({})
+  readonly property var geometrySettings: lacunaSettings && lacunaSettings.geometry ? lacunaSettings.geometry : ({})
+  readonly property string cornerMode: validCornerMode(geometrySettings.cornerMode)
+  readonly property int customCornerRadius: Math.max(0, Math.min(32, Math.round(numberSetting(geometrySettings.cornerRadius, 14))))
+  readonly property int resolvedCornerRadius: cornerMode === "square" ? 0
+    : (cornerMode === "custom" ? customCornerRadius : Math.max(0, Math.round(Style.cornerRadius)))
   readonly property var frameSettings: lacunaSettings && lacunaSettings.frame ? lacunaSettings.frame : ({})
   readonly property var barPresentationSettings: lacunaSettings && lacunaSettings.barPresentation ? lacunaSettings.barPresentation : ({})
   readonly property bool portraitSplitEnabled: barPresentationSettings.portraitSplit !== false
   readonly property string frameMode: validFrameMode(frameSettings.mode)
   readonly property bool frameEnabled: frameMode === "fullframe"
   readonly property int frameThickness: positiveInt(frameSettings.thickness, 8)
-  readonly property int frameRadius: Math.max(0, numberSetting(frameSettings.radius, 14))
-  readonly property bool frameMoldingPieces: typeof frameSettings.moldingPieces === "boolean"
-    ? frameSettings.moldingPieces : frameSettings.roundedContentCorners !== false
+  readonly property int frameRadius: resolvedCornerRadius
+  // Universal shell corners own trim visibility; legacy molding toggles are ignored.
+  readonly property bool frameMoldingPieces: resolvedCornerRadius > 0
   readonly property bool frameShadow: frameSettings.shadow === true
   readonly property bool frameBorder: frameSettings.border === true
   readonly property int frameShadowOffsetX: numberSetting(frameSettings.shadowOffsetX, 2)
@@ -94,6 +99,12 @@ Item {
     var next = String(value || "top")
     if (next === "top" || next === "bottom" || next === "left" || next === "right") return next
     return "top"
+  }
+
+  function validCornerMode(value) {
+    var next = String(value || "theme").toLowerCase()
+    if (next === "square" || next === "custom") return next
+    return "theme"
   }
 
   function validFrameMode(value) {
@@ -494,7 +505,7 @@ Item {
 
       targetScreen: modelData
       geometryRecord: root.lacunaFrameGeometryRecord(modelData)
-      shadowGeometryRecord: root.lacunaTargetFrameGeometryRecord(modelData)
+      shadowGeometryRecord: root.lacunaFrameGeometryRecord(modelData)
       active: geometryRecord && geometryRecord.framed === true
       suppressed: root.fullscreenWorkspaceOnScreen(modelData)
       barPosition: root.position

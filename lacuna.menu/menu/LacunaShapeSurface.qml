@@ -11,9 +11,9 @@ Item {
   property int bottomRightCornerState: 0
   property int bottomLeftCornerState: -1
 
-  readonly property real minimumRadius: 0.01
+  readonly property real minimumRadius: 0
   readonly property color solidPanelColor: Qt.rgba(panelColor.r, panelColor.g, panelColor.b, 1)
-  readonly property real effectiveRadius: Math.max(minimumRadius, cornerHelper.flattenedRadius(Math.min(width, height), panelRadius))
+  readonly property real effectiveRadius: Math.max(0, cornerHelper.flattenedRadius(Math.min(width, height), panelRadius))
 
   readonly property real tlMultX: cornerHelper.multX(topLeftCornerState)
   readonly property real tlMultY: cornerHelper.multY(topLeftCornerState)

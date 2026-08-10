@@ -6,7 +6,6 @@ Item {
   property string lacunaPath: ""
   property bool sidebarExclusive: true
   property bool sidebarCollapsed: false
-  property bool sidebarConnectorPieces: true
   property string sidebarDefaultMode: "off"
   property string sidebarMonitorPolicy: "auto"
   property var sidebarMonitorNames: []
@@ -25,6 +24,9 @@ Item {
   property bool desktopClockUse12Hour: false
   property string designStyle: "lacuna"
   property string colorProfile: "semantic"
+  property string cornerMode: "theme"
+  property int cornerRadius: 14
+  property int resolvedCornerRadius: 0
   property string quickLaunchLayout: "list"
   property string dailyLaunchLayout: "list"
   property string shortcutsLayout: "list"
@@ -35,7 +37,6 @@ Item {
   property string frameReserveMode: "auto"
   property bool frameShadow: false
   property bool frameBorder: false
-  property bool frameMoldingPieces: true
   property bool portraitSplit: true
   property var mediaProviders: ({})
   property var backgroundEffects: ({})
@@ -155,6 +156,24 @@ Item {
     if (root.designStyle === "omarchy") return "Native Omarchy borders and containment"
     if (root.designStyle === "material") return "Softer tonal surfaces and clearer states"
     return "Flat compact Lacuna linework"
+  }
+
+  function cornerModeName() {
+    if (root.cornerMode === "square") return "Square"
+    if (root.cornerMode === "custom") return "Custom"
+    return "Theme"
+  }
+
+  function cornerModeHint() {
+    if (root.cornerMode === "square") return "Keep Lacuna surfaces and application windows square"
+    if (root.cornerMode === "custom") return "Use " + root.cornerRadius + " px for Lacuna surfaces and application windows"
+    return "Follow the active Omarchy theme's " + root.resolvedCornerRadius + " px window rounding"
+  }
+
+  function cornerRadiusHint() {
+    return root.cornerMode === "custom"
+      ? "Adjust the live shell and application-window radius"
+      : "Saved custom radius; changing it switches all corners to Custom"
   }
 
   function barSizeModeName() {

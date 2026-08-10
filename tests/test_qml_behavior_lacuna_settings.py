@@ -78,6 +78,7 @@ ShellRoot {{
     var value = service.normalize({{
       version: 99,
       futureTop: {{ keep: true }},
+      geometry: {{ cornerMode: "custom", cornerRadius: 9, futureGeometry: {{ keep: true }} }},
       barPresentation: {{ portraitSplit: false, futurePresentation: {{ keep: true }} }},
       barSizeSnapshot: {{ themeName: "future", sizeHorizontal: 30, sizeVertical: 32, futureSnapshot: [1, 2] }},
       sizeTransition: {{ holdCompact: true, holdUntil: -9, futureTransition: {{ keep: true }} }},
@@ -121,6 +122,9 @@ ShellRoot {{
     console.log("BEHAVE " + JSON.stringify({{
       version: value.version,
       top: value.futureTop.keep === true,
+      geometry: value.geometry.cornerMode === "custom"
+        && value.geometry.cornerRadius === 9
+        && value.geometry.futureGeometry.keep === true,
       presentation: value.barPresentation.futurePresentation.keep === true,
       snapshot: value.barSizeSnapshot.futureSnapshot.length === 2,
       transition: value.sizeTransition.futureTransition.keep === true,
@@ -158,7 +162,9 @@ ShellRoot {{
         && value.backgroundVignette.intensity === 1
         && value.sizeTransition.holdUntil === 0
         && value.preferredApps.files === "system"
-        && value.frame.radius === 0
+        && value.geometry.cornerMode === "custom"
+        && value.geometry.cornerRadius === 9
+        && value.frame.radius === 9
     }}))
     finish.restart()
   }}
@@ -174,10 +180,10 @@ ShellRoot {{
 
             require_no_qml_errors(output)
             row = parse_behave(output)[-1]
-            self.assertEqual(2, row.pop("version"), output[-2000:])
+            self.assertEqual(3, row.pop("version"), output[-2000:])
             self.assertTrue(all(row.values()), output[-2000:])
 
-    def test_schema_v2_corner_migration_matrix_and_alias(self):
+    def test_schema_v3_corner_migration_matrix_and_alias(self):
         qml = f"""
 import Quickshell
 import QtQuick
@@ -200,7 +206,9 @@ ShellRoot {{
         alias: normalized.sidebar.cornerPieces,
         molding: normalized.frame.moldingPieces,
         roundedAlias: normalized.frame.roundedContentCorners,
-        radius: normalized.frame.radius
+        radius: normalized.frame.radius,
+        cornerMode: normalized.geometry.cornerMode,
+        cornerRadius: normalized.geometry.cornerRadius
       }}
     }}
     console.log("BEHAVE " + JSON.stringify({{
@@ -217,6 +225,12 @@ ShellRoot {{
         version: 2,
         sidebar: {{ connectorPieces: false, cornerPieces: true }},
         frame: {{ moldingPieces: false, radius: 0 }}
+      }}),
+      legacyCustom: result({{ version: 2, frame: {{ radius: 9 }} }}),
+      geometryWins: result({{
+        version: 3,
+        geometry: {{ cornerMode: "custom", cornerRadius: 21 }},
+        frame: {{ radius: 0 }}
       }})
     }}))
     finish.restart()
@@ -229,24 +243,89 @@ ShellRoot {{
         row = parse_behave(output)[-1]
         for name in ("missing", "legacyTrue"):
             self.assertEqual(
-                {"version": 2, "connector": True, "alias": True, "molding": True, "roundedAlias": True, "radius": 14},
+                {"version": 3, "connector": True, "alias": True, "molding": True, "roundedAlias": True, "radius": 14, "cornerMode": "theme", "cornerRadius": 14},
                 row[name],
             )
         self.assertEqual(
-            {"version": 2, "connector": False, "alias": False, "molding": False, "roundedAlias": False, "radius": 14},
+            {"version": 3, "connector": False, "alias": False, "molding": False, "roundedAlias": False, "radius": 14, "cornerMode": "theme", "cornerRadius": 14},
             row["legacyFalse"],
         )
         self.assertEqual(
-            {"version": 2, "connector": True, "alias": True, "molding": False, "roundedAlias": False, "radius": 14},
+            {"version": 3, "connector": True, "alias": True, "molding": False, "roundedAlias": False, "radius": 14, "cornerMode": "theme", "cornerRadius": 14},
             row["interimRoundedFalse"],
         )
         self.assertEqual(
-            {"version": 2, "connector": True, "alias": True, "molding": True, "roundedAlias": True, "radius": 0},
+            {"version": 3, "connector": True, "alias": True, "molding": True, "roundedAlias": True, "radius": 0, "cornerMode": "square", "cornerRadius": 14},
             row["newWins"],
         )
         self.assertEqual(
-            {"version": 2, "connector": False, "alias": False, "molding": False, "roundedAlias": False, "radius": 0},
+            {"version": 3, "connector": False, "alias": False, "molding": False, "roundedAlias": False, "radius": 0, "cornerMode": "square", "cornerRadius": 14},
             row["split"],
+        )
+        self.assertEqual(
+            {"version": 3, "connector": True, "alias": True, "molding": True, "roundedAlias": True, "radius": 9, "cornerMode": "custom", "cornerRadius": 9},
+            row["legacyCustom"],
+        )
+        self.assertEqual(
+            {"version": 3, "connector": True, "alias": True, "molding": True, "roundedAlias": True, "radius": 21, "cornerMode": "custom", "cornerRadius": 21},
+            row["geometryWins"],
+        )
+
+    def test_design_tokens_accept_the_resolved_exposed_corner_radius(self):
+        qml = f"""
+import Quickshell
+import QtQuick
+
+ShellRoot {{
+  id: root
+  property var tokens: null
+
+  Component.onCompleted: {{
+    var component = Qt.createComponent("{qml_url('lacuna.menu/services/DesignTokens.qml')}", Component.PreferSynchronous)
+    if (component.status !== Component.Ready) {{
+      console.log("BEHAVE_ERR " + component.errorString())
+      Qt.quit()
+      return
+    }}
+    tokens = component.createObject(root, {{ designStyle: "lacuna" }})
+    settle.start()
+  }}
+
+  Timer {{
+    id: settle
+    interval: 20
+    onTriggered: {{
+      var fallback = tokens.panelRadius
+      var fallbackJoin = tokens.joinRadius
+      tokens.exposedCornerRadius = 0
+      var square = tokens.panelRadius
+      var squareJoin = tokens.joinRadius
+      tokens.exposedCornerRadius = 9.6
+      console.log("BEHAVE " + JSON.stringify({{
+        fallback: fallback,
+        fallbackJoin: fallbackJoin,
+        square: square,
+        squareJoin: squareJoin,
+        rounded: tokens.panelRadius,
+        roundedJoin: tokens.joinRadius
+      }}))
+      Qt.quit()
+    }}
+  }}
+}}
+"""
+        output = run_quickshell(qml, timeout=8)
+        require_no_qml_errors(output)
+        self.assertEqual(
+            {
+                "fallback": 14,
+                "fallbackJoin": 14,
+                "square": 0,
+                "squareJoin": 0,
+                "rounded": 10,
+                "roundedJoin": 10,
+            },
+            parse_behave(output)[-1],
         )
 
     def test_confirmed_persistence_converges_to_latest_rapid_save(self):
@@ -486,7 +565,6 @@ ShellRoot {{
     sidebar.defaultMode = "rail"
     sidebar.collapsed = true
     sidebar.exclusive = false
-    sidebar.connectorPieces = false
     sidebar.autoHideEnabled = true
     sidebar.autoHideHotZoneWidth = 4
     sidebar.autoHideRevealDelayMs = 140
@@ -521,8 +599,8 @@ ShellRoot {{
         self.assertEqual("rail", row["defaultMode"])
         self.assertTrue(row["collapsed"])
         self.assertFalse(row["exclusive"])
-        self.assertFalse(row["connectorPieces"])
-        self.assertFalse(row["cornerAlias"])
+        self.assertTrue(row["connectorPieces"])
+        self.assertTrue(row["cornerAlias"])
         self.assertEqual("pinned", row["monitorPolicy"])
         self.assertEqual("DP-1", row["monitorName"])
         self.assertTrue(row["autoHide"]["enabled"])

@@ -2,6 +2,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import QtQuick
+import qs.Commons
 import "../services"
 import "../components"
 import "../settings"
@@ -82,7 +83,10 @@ Item {
   // offsets and sizing, not which edge Lacuna owns.
   readonly property bool panelOnRight: false
   readonly property bool sidebarSurfaceVisible: lacunaEnabled && panelController.menuRenderable
-  readonly property bool effectiveConnectorPieces: sidebarSurfaceVisible && sidebarState.connectorPieces && !panelOnRight
+  // Universal shell corners own all molding visibility. Theme/Square radius 0
+  // removes connector and frame trim; any positive Theme/Custom radius enables it.
+  readonly property bool universalMoldingEnabled: resolvedCornerRadius > 0
+  readonly property bool effectiveConnectorPieces: sidebarSurfaceVisible && universalMoldingEnabled && !panelOnRight
   property int defaultTopBarHeight: 26
   property int barHeight: topBarHeight()
   property int fullPanelWidth: Math.round(sizeMix(310, 270))
@@ -240,15 +244,22 @@ Item {
   readonly property bool reduceMotionEnabled: lacunaSettings.data && lacunaSettings.data.reduceMotion === true
   readonly property var powerSettings: lacunaSettings.data && lacunaSettings.data.power ? lacunaSettings.data.power : ({})
   readonly property bool instantRestart: boolSetting(powerSettings.instantRestart, false)
+  readonly property var geometrySettings: lacunaSettings.data && lacunaSettings.data.geometry ? lacunaSettings.data.geometry : ({})
+  readonly property string cornerMode: validCornerMode(geometrySettings.cornerMode)
+  readonly property int customCornerRadius: Math.max(0, Math.min(32, Math.round(numberSetting(geometrySettings.cornerRadius, 14))))
+  readonly property int resolvedCornerRadius: cornerMode === "square" ? 0
+    : (cornerMode === "custom" ? customCornerRadius : Math.max(0, Math.round(Style.cornerRadius)))
+  property bool cornerWindowSyncReady: false
+  onCornerModeChanged: if (cornerWindowSyncReady) cornerWindowSyncTimer.restart()
+  onCustomCornerRadiusChanged: if (cornerWindowSyncReady && cornerMode === "custom") cornerWindowSyncTimer.restart()
   readonly property var frameSettings: lacunaSettings.data && lacunaSettings.data.frame ? lacunaSettings.data.frame : ({})
   readonly property string frameMode: validFrameMode(frameSettings.mode)
   readonly property string frameReserveMode: validFrameReserveMode(frameSettings.reserveMode)
   readonly property bool frameShadow: boolSetting(frameSettings.shadow, false)
   readonly property bool frameBorder: boolSetting(frameSettings.border, false)
-  readonly property bool frameMoldingPieces: frameSettings && typeof frameSettings.moldingPieces === "boolean"
-    ? frameSettings.moldingPieces : boolSetting(frameSettings.roundedContentCorners, true)
+  readonly property bool frameMoldingPieces: universalMoldingEnabled
   readonly property int frameThickness: positiveInt(frameSettings.thickness, 8)
-  readonly property int frameRadius: Math.max(0, numberSetting(frameSettings.radius, 14))
+  readonly property int frameRadius: resolvedCornerRadius
   readonly property int frameShadowOffsetX: numberSetting(frameSettings.shadowOffsetX, 2)
   readonly property int frameShadowOffsetY: numberSetting(frameSettings.shadowOffsetY, 3)
   // The default policy follows the focused Hyprland output. Pinned mode keeps
@@ -1302,6 +1313,12 @@ Item {
     return valueHelpers.boolSetting(value, fallback)
   }
 
+  function validCornerMode(value) {
+    var mode = String(value || "theme").toLowerCase()
+    if (mode === "square" || mode === "custom") return mode
+    return "theme"
+  }
+
   function validFrameMode(value) {
     return valueHelpers.validFrameMode(value)
   }
@@ -1634,6 +1651,58 @@ Item {
     setBackgroundEffectForeground(effectId, !registry.backgroundEffectForegroundEnabled(effectId))
   }
 
+  Timer {
+    id: cornerWindowSyncTimer
+    interval: 0
+    repeat: false
+    onTriggered: root.syncWindowCornerRadius(root.cornerMode, root.customCornerRadius)
+  }
+
+  Connections {
+    target: root.shellSettingsService
+    ignoreUnknownSignals: true
+    function onStateChanged() {
+      if (root.cornerWindowSyncReady) cornerWindowSyncTimer.restart()
+    }
+  }
+
+  function syncWindowCornerRadius(mode, radius) {
+    if (!shellSettingsService) return
+    var hypr = shellSettingsService.state && shellSettingsService.state.hypr
+      ? shellSettingsService.state.hypr : ({})
+    var hasLacunaOverride = hypr.windowRoundingOverride === true
+    if (mode === "theme" && typeof shellSettingsService.setWindowRoundingMode === "function") {
+      if (hasLacunaOverride) shellSettingsService.setWindowRoundingMode("theme")
+      return
+    }
+    var targetRadius = mode === "square" ? 0 : Math.max(0, Math.min(32, Math.round(Number(radius) || 0)))
+    if (hasLacunaOverride && Number(hypr.windowRoundingOverrideRadius) === targetRadius) return
+    if (typeof shellSettingsService.setWindowRoundingRadius === "function") {
+      shellSettingsService.setWindowRoundingRadius(targetRadius)
+    }
+  }
+
+  function setCornerMode(mode) {
+    var normalizedMode = validCornerMode(mode)
+    var next = lacunaSettings.normalize(lacunaSettings.data)
+    next.geometry.cornerMode = normalizedMode
+    // Keep compatibility aliases coherent for one schema generation.
+    next.frame.radius = normalizedMode === "square" ? 0 : next.geometry.cornerRadius
+    lacunaSettings.save(next)
+    cornerWindowSyncTimer.restart()
+  }
+
+  function setCornerRadius(value) {
+    var parsed = Math.round(Number(value))
+    if (!isFinite(parsed)) return
+    var next = lacunaSettings.normalize(lacunaSettings.data)
+    next.geometry.cornerRadius = Math.max(0, Math.min(32, parsed))
+    next.geometry.cornerMode = "custom"
+    next.frame.radius = next.geometry.cornerRadius
+    lacunaSettings.save(next)
+    cornerWindowSyncTimer.restart()
+  }
+
   function setFrameShadow(enabled) {
     var next = lacunaSettings.normalize(lacunaSettings.data)
     next.frame.shadow = enabled === true
@@ -1652,13 +1721,6 @@ Item {
 
   function toggleFrameBorder() {
     setFrameBorder(!lacunaSettings.normalize(lacunaSettings.data).frame.border)
-  }
-
-  function setFrameMoldingPieces(enabled) {
-    var next = lacunaSettings.normalize(lacunaSettings.data)
-    next.frame.moldingPieces = enabled === true
-    next.frame.roundedContentCorners = next.frame.moldingPieces
-    lacunaSettings.save(next)
   }
 
   function setPortraitSplit(enabled) {
@@ -1879,11 +1941,6 @@ Item {
       return true
     }
 
-    if (entry.action === "toggle-sidebar-connectors" || entry.action === "toggle-corner-pieces") {
-      sidebarState.setConnectorPiecesEnabled(desiredChecked(entry, !sidebarState.connectorPieces))
-      return true
-    }
-
     if (entry.action === "toggle-bar-density") {
       compactState.toggle()
       return true
@@ -1933,6 +1990,16 @@ Item {
   }
 
   function handleLacunaSettingsAction(entry) {
+    if (entry.action.indexOf("set-corner-mode-") === 0) {
+      setCornerMode(entry.action.substring("set-corner-mode-".length))
+      return true
+    }
+
+    if (entry.action.indexOf("set-corner-radius-") === 0) {
+      setCornerRadius(entry.action.substring("set-corner-radius-".length))
+      return true
+    }
+
     if (entry.action.indexOf("set-frame-mode-") === 0) {
       setFrameMode(entry.action.substring("set-frame-mode-".length))
       return true
@@ -1950,12 +2017,6 @@ Item {
 
     if (entry.action === "toggle-frame-border") {
       setFrameBorder(desiredChecked(entry, !lacunaSettings.normalize(lacunaSettings.data).frame.border))
-      return true
-    }
-
-    if (entry.action === "toggle-frame-molding-pieces") {
-      setFrameMoldingPieces(desiredChecked(entry,
-        !lacunaSettings.normalize(lacunaSettings.data).frame.moldingPieces))
       return true
     }
 
@@ -2262,6 +2323,8 @@ Item {
     syncSidebarAutohideScreens()
     applyInitialSidebarDefault()
     refreshHyprWorkspaceState()
+    cornerWindowSyncReady = true
+    cornerWindowSyncTimer.restart()
   }
 
   Component.onDestruction: {
@@ -2363,6 +2426,7 @@ Item {
   DesignTokens {
     id: designTokens
     designStyle: root.designStyle
+    exposedCornerRadius: root.resolvedCornerRadius
     compact: root.compact
     compactProgress: root.compactProgress
     foreground: root.foreground
@@ -2373,6 +2437,7 @@ Item {
   DesignTokens {
     id: railDesignTokens
     designStyle: root.designStyle
+    exposedCornerRadius: root.resolvedCornerRadius
     compact: root.railCompact
     compactProgress: root.forceCompactRail ? 1 : root.compactProgress
     foreground: root.foreground
@@ -2398,7 +2463,6 @@ Item {
     lacunaPath: root.lacunaPath
     sidebarExclusive: sidebarState.exclusive
     sidebarCollapsed: sidebarState.collapsed
-    sidebarConnectorPieces: sidebarState.connectorPieces
     sidebarDefaultMode: root.sidebarDefaultMode()
     sidebarMonitorPolicy: root.sidebarMonitorPolicy
     sidebarMonitorNames: root.sidebarMonitorNames
@@ -2411,6 +2475,9 @@ Item {
     barSizeMode: barSizeModeService.barSizeMode
     designStyle: root.designStyle
     colorProfile: lacunaSettings.data && lacunaSettings.data.colorProfile ? lacunaSettings.data.colorProfile : "semantic"
+    cornerMode: root.cornerMode
+    cornerRadius: root.customCornerRadius
+    resolvedCornerRadius: root.resolvedCornerRadius
     quickLaunchLayout: lacunaSettings.data && lacunaSettings.data.quickLaunchLayout ? lacunaSettings.data.quickLaunchLayout : "list"
     dailyLaunchLayout: lacunaSettings.data && lacunaSettings.data.dailyLaunchLayout ? lacunaSettings.data.dailyLaunchLayout : "list"
     shortcutsLayout: lacunaSettings.data && lacunaSettings.data.shortcutsLayout ? lacunaSettings.data.shortcutsLayout : "list"
@@ -2420,7 +2487,6 @@ Item {
     frameReserveMode: root.frameReserveMode
     frameShadow: root.frameShadow
     frameBorder: root.frameBorder
-    frameMoldingPieces: root.frameMoldingPieces
     portraitSplit: root.portraitSplit
     mediaProviders: root.mediaProvidersSettings
     backgroundEffects: root.backgroundEffectsSettings
@@ -2606,6 +2672,7 @@ Item {
       anchorRight: root.panelOnRight
       connectorWidth: root.settingsConnectorWidth
       connectorOverlap: root.effectiveConnectorPieces ? root.connectorOverlap : 0
+      panelRadius: root.attachedFlyoutRadius
       geometrySemanticKey: root.geometryTargetFlyout
       flyoutY: root.geometryTargetFlyout === "" ? 0
         : root.flyoutGeometryFor(modelData, root.geometryTargetFlyout).y
@@ -2717,7 +2784,7 @@ Item {
       flyoutY: panelHost.effectiveFlyoutY
       flyoutWidth: panelHost.effectiveFlyoutWidth
       flyoutHeight: panelHost.effectiveFlyoutHeight
-      panelRadius: root.attachedFlyoutRadius
+      panelRadius: panelHost.effectivePanelRadius
       panelColor: root.panelColor
       foreground: root.foreground
       designTokens: root.menuDesignTokensRef
@@ -2902,7 +2969,7 @@ Item {
       openToLeft: root.panelOnRight
       panelWidth: panelHost.effectiveFlyoutWidth
       panelHeight: panelHost.effectiveFlyoutHeight
-      panelRadius: root.attachedFlyoutRadius
+      panelRadius: panelHost.effectivePanelRadius
       panelColor: root.panelColor
       foreground: root.foreground
       designTokens: root.menuDesignTokensRef
@@ -3064,7 +3131,7 @@ Item {
       flyoutY: panelHost.flyoutMaskY
       flyoutWidth: panelHost.flyoutMaskWidth
       flyoutHeight: panelHost.flyoutMaskHeight
-      panelRadius: root.attachedFlyoutRadius
+      panelRadius: panelHost.effectivePanelRadius
       borderColor: root.menuThemeRef.frameBorder
     }
 

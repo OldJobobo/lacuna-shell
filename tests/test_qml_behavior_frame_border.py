@@ -93,6 +93,107 @@ ShellRoot {{
         self.assertTrue(result["renderableBeforeSuppression"])
         self.assertFalse(result["renderableWhileSuppressed"])
 
+    def test_zero_radius_geometry_stays_exactly_square_across_borders(self):
+        qml = f"""
+import Quickshell
+import QtQuick
+
+ShellRoot {{
+  id: root
+  property var frameBorder: null
+  property var overlay: null
+  property var overlayFallback: null
+  property var panelBorder: null
+  property var shapeSurface: null
+
+  Component.onCompleted: {{
+    frameBorder = Qt.createComponent("{qml_url('lacuna.bar/LacunaFrameBorderWindow.qml')}", Component.PreferSynchronous).createObject(root, {{
+      width: 800,
+      height: 600,
+      active: true,
+      geometryRecord: {{
+        framed: true,
+        holeX: 8,
+        holeY: 30,
+        holeRight: 792,
+        holeBottom: 592,
+        contentRadius: 0
+      }}
+    }})
+    overlay = Qt.createComponent("{qml_url('lacuna.menu/menu/LacunaFrameOverlay.qml')}", Component.PreferSynchronous).createObject(root, {{
+      width: 800,
+      height: 600,
+      mode: "off",
+      borderOnly: true,
+      borderEnabled: true,
+      borderGeometryRecord: {{
+        framed: true,
+        holeX: 8,
+        holeY: 30,
+        holeRight: 792,
+        holeBottom: 592,
+        contentRadius: 0
+      }}
+    }})
+    overlayFallback = Qt.createComponent("{qml_url('lacuna.menu/menu/LacunaFrameOverlay.qml')}", Component.PreferSynchronous).createObject(root, {{
+      width: 800,
+      height: 600,
+      mode: "off",
+      borderOnly: true,
+      borderEnabled: true,
+      frameRadius: 14,
+      moldingPieces: false
+    }})
+    panelBorder = Qt.createComponent("{qml_url('lacuna.menu/menu/LacunaPanelBorder.qml')}", Component.PreferSynchronous).createObject(root, {{
+      width: 800,
+      height: 600,
+      active: true,
+      flyoutVisible: true,
+      flyoutX: 100,
+      flyoutY: 80,
+      flyoutWidth: 320,
+      flyoutHeight: 420,
+      panelRadius: 0
+    }})
+    shapeSurface = Qt.createComponent("{qml_url('lacuna.menu/menu/LacunaShapeSurface.qml')}", Component.PreferSynchronous).createObject(root, {{
+      width: 320,
+      height: 420,
+      panelRadius: 0
+    }})
+    settle.start()
+  }}
+
+  Timer {{
+    id: settle
+    interval: 30
+    onTriggered: {{
+      console.log("BEHAVE " + JSON.stringify({{
+        frameHoleRadius: frameBorder.holeRadius,
+        frameBorderRadius: frameBorder.borderRadius,
+        overlayBorderRadius: overlay.borderRadius,
+        fallbackOverlayBorderRadius: overlayFallback.borderRadius,
+        panelStrokeRadius: panelBorder.strokeRadius,
+        surfaceRadius: shapeSurface.effectiveRadius
+      }}))
+      Qt.quit()
+    }}
+  }}
+}}
+"""
+        output = run_quickshell(qml, timeout=8)
+        require_no_qml_errors(output)
+        self.assertEqual(
+            {
+                "frameHoleRadius": 0,
+                "frameBorderRadius": 0,
+                "overlayBorderRadius": 0,
+                "fallbackOverlayBorderRadius": 0,
+                "panelStrokeRadius": 0,
+                "surfaceRadius": 0,
+            },
+            parse_behave(output)[-1],
+        )
+
     def test_border_only_overlay_consumes_authoritative_host_geometry(self):
         qml = f"""
 import Quickshell

@@ -84,11 +84,9 @@ PanelWindow {
   readonly property real holeBottom: hasGeometryRecord ? Number(geometryRecord.holeBottom || holeY + 1) : Math.max(holeY + 1, height - bottomInset)
   readonly property real holeWidth: Math.max(1, holeRight - holeX)
   readonly property real holeHeight: Math.max(1, holeBottom - holeY)
-  // Shadow caster hole. MultiEffect can briefly flash when a Shape source is
-  // rebuilt every frame, so the caster consumes the immutable transaction
-  // target while frame paint consumes the interpolated effective geometry.
-  // With the frame off it collapses to the bar edge alone, preserving the bar
-  // shadow independently of frame and menu visibility.
+  // Shadow caster hole consumes the same effective geometry transaction as
+  // frame fill and border. With the frame off it collapses to the bar edge
+  // alone, preserving the bar shadow independently of frame/menu visibility.
   readonly property bool hasShadowGeometryRecord: shadowGeometryRecord && typeof shadowGeometryRecord === "object"
   readonly property bool shadowFrameRenderable: !suppressed && (hasShadowGeometryRecord
     ? shadowGeometryRecord.framed === true : isRenderable)
@@ -114,10 +112,10 @@ PanelWindow {
     : (shadowBarPosition === "right" ? Math.max(casterHoleX + 1, width - shadowBarSize) : width)
   readonly property real casterHoleBottom: shadowFrameRenderable ? shadowRecordHoleBottom : (shadowBarPosition === "bottom" || shadowBottomEdgeOccupied ? Math.max(casterHoleY + 1, height - shadowBarSize) : height)
   readonly property real casterHoleRadius: shadowFrameRenderable
-    ? Math.max(minArcRadius, Math.min(shadowRecordRadius, (casterHoleRight - casterHoleX) / 2, (casterHoleBottom - casterHoleY) / 2))
-    : minArcRadius
-  readonly property real minArcRadius: 0.01
-  readonly property real holeRadius: effectiveMoldingPieces ? Math.max(minArcRadius, Math.min(r, holeWidth / 2, holeHeight / 2)) : minArcRadius
+    ? Math.max(0, Math.min(shadowRecordRadius, (casterHoleRight - casterHoleX) / 2, (casterHoleBottom - casterHoleY) / 2))
+    : 0
+  readonly property real minArcRadius: 0
+  readonly property real holeRadius: effectiveMoldingPieces ? Math.max(0, Math.min(r, holeWidth / 2, holeHeight / 2)) : 0
   readonly property bool isRenderable: !suppressed
     && (hasGeometryRecord ? geometryRecord.framed === true : active)
     && width > 0 && height > 0 && holeWidth > 0 && holeHeight > 0

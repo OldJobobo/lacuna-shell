@@ -8,7 +8,6 @@ Item {
   property var settingsService: null
   property bool exclusive: true
   property bool collapsed: false
-  property bool connectorPieces: true
   property string defaultMode: "off"
   property string monitorPolicy: "auto"
   property var monitorNames: []
@@ -40,15 +39,6 @@ Item {
 
   function toggleCollapsed() {
     collapsed = !collapsed
-  }
-
-  function toggleConnectorPieces() {
-    setConnectorPiecesEnabled(!connectorPieces)
-  }
-
-  function setConnectorPiecesEnabled(value) {
-    connectorPieces = value === true
-    save()
   }
 
   function expand() {
@@ -101,10 +91,8 @@ Item {
     // This live rail/full state is also the presentation autohide reveals.
     next.sidebar.collapsed = collapsed
     next.sidebar.exclusive = exclusive
-    next.sidebar.connectorPieces = connectorPieces
-    // One-release schema-v1 alias; downgrade cannot preserve frame rounding
-    // independently once the two schema-v2 controls diverge.
-    next.sidebar.cornerPieces = connectorPieces
+    // Deprecated trim booleans survive normalization untouched for rollback;
+    // SidebarState no longer owns or advertises them as runtime controls.
     next.sidebar.monitorPolicy = next.sidebar.monitorPolicy ? String(next.sidebar.monitorPolicy) : monitorPolicy
     next.sidebar.monitorNames = Array.isArray(next.sidebar.monitorNames) ? next.sidebar.monitorNames : monitorNames
     if (!next.sidebar.autoHide || typeof next.sidebar.autoHide !== "object") next.sidebar.autoHide = {}
@@ -125,8 +113,6 @@ Item {
       displayInitialized = true
     }
     exclusive = !(sidebar && sidebar.exclusive === false)
-    connectorPieces = sidebar && typeof sidebar.connectorPieces === "boolean"
-      ? sidebar.connectorPieces : !(sidebar && sidebar.cornerPieces === false)
     monitorPolicy = sidebar && sidebar.monitorPolicy ? String(sidebar.monitorPolicy) : "auto"
     monitorNames = sidebar && Array.isArray(sidebar.monitorNames) ? sidebar.monitorNames : []
     var autoHide = sidebar && sidebar.autoHide && typeof sidebar.autoHide === "object" ? sidebar.autoHide : ({})

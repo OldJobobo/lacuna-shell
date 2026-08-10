@@ -1,6 +1,7 @@
 import Quickshell.Io
 import Quickshell
 import QtQuick
+import qs.Commons
 
 Item {
   id: root
@@ -20,6 +21,7 @@ Item {
   property string activeRefreshDomains: ""
   property bool actionRefreshPending: false
   property string actionRefreshDomains: ""
+  property bool styleRefreshPending: false
   property bool loadTimedOut: false
   property string errorText: ""
   property bool stale: false
@@ -64,6 +66,8 @@ Item {
       hypr: {
         windowGapsEnabled: null,
         windowRoundingMode: "theme",
+        windowRoundingOverride: false,
+        windowRoundingOverrideRadius: -1,
         roundedWindows: null,
         singleWindowAspect: null,
         gapsIn: -1,
@@ -334,11 +338,16 @@ Item {
     target: root.commandRunner
     ignoreUnknownSignals: true
     function onQueueDrained() {
-      if (!root.actionRefreshPending) return
-      var domains = root.actionRefreshDomains
-      root.actionRefreshPending = false
-      root.actionRefreshDomains = ""
-      root.scheduleRefresh(domains)
+      if (root.actionRefreshPending) {
+        var domains = root.actionRefreshDomains
+        root.actionRefreshPending = false
+        root.actionRefreshDomains = ""
+        root.scheduleRefresh(domains)
+      }
+      if (root.styleRefreshPending) {
+        root.styleRefreshPending = false
+        Style.scheduleRefresh()
+      }
     }
   }
 
@@ -442,7 +451,10 @@ Item {
     next.hypr.windowRoundingMode = mode
 
     if (mode === "theme") {
+      next.hypr.windowRoundingOverride = false
+      next.hypr.windowRoundingOverrideRadius = -1
       state = next
+      styleRefreshPending = true
       var gapsOnlyBody = "-- Lacuna: Preserve disabled gaps without overriding theme borders or corner rounding.\n"
         + "hl.config({\n"
         + "  general = {\n"
@@ -457,10 +469,24 @@ Item {
       return
     }
 
-    var radius = mode === "rounded" ? root.roundedWindowRadius : 0
-    next.hypr.roundedWindows = mode === "rounded"
+    setWindowRoundingRadius(mode === "rounded" ? root.roundedWindowRadius : 0)
+  }
+
+  function setWindowRoundingRadius(value) {
+    var parsed = Math.round(Number(value))
+    if (!isFinite(parsed)) return
+    var radius = Math.max(0, Math.min(32, parsed))
+    var file = homeDir + "/.local/state/omarchy/toggles/hypr/zz-lacuna-window-rounded.lua"
+    var dir = homeDir + "/.local/state/omarchy/toggles/hypr"
+    var next = copyState()
+    if (!next.hypr || typeof next.hypr !== "object") next.hypr = {}
+    next.hypr.windowRoundingMode = radius > 0 ? "rounded" : "square"
+    next.hypr.windowRoundingOverride = true
+    next.hypr.windowRoundingOverrideRadius = radius
+    next.hypr.roundedWindows = radius > 0
     next.hypr.rounding = radius
     state = next
+    styleRefreshPending = true
     var body = "-- Lacuna: Override the active theme's Hyprland window corner rounding.\n"
       + "hl.config({\n"
       + "  decoration = {\n"

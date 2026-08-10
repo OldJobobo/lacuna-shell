@@ -250,6 +250,7 @@ def hypr_state(toggles_dir):
   else:
     gaps_enabled = live_gaps_enabled
 
+  rounded_override = None
   if rounded_text:
     rounded_override = first_int(rounded_text, "rounding =")
     window_rounding_mode = "square" if rounded_override == 0 else "rounded"
@@ -267,6 +268,8 @@ def hypr_state(toggles_dir):
   return {
     "windowGapsEnabled": gaps_enabled,
     "windowRoundingMode": window_rounding_mode,
+    "windowRoundingOverride": bool(rounded_text),
+    "windowRoundingOverrideRadius": -1 if rounded_override is None else rounded_override,
     "roundedWindows": rounded_windows,
     "singleWindowAspect": single_aspect,
     "gapsIn": -1 if gaps_in is None else gaps_in,

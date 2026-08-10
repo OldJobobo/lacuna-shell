@@ -53,16 +53,15 @@ Item {
   readonly property real holeBottom: hasGeometryRecord ? Number(geometryRecord.holeBottom) : Math.max(holeY, height - bottomInset)
   readonly property real holeWidth: Math.max(0, holeRight - holeX)
   readonly property real holeHeight: Math.max(0, holeBottom - holeY)
-  readonly property real minArcRadius: 0.01
   readonly property bool effectiveMoldingPieces: hasGeometryRecord ? r > 0 : moldingPieces
-  readonly property real holeRadius: effectiveMoldingPieces ? Math.max(minArcRadius, Math.min(r, holeWidth / 2, holeHeight / 2)) : minArcRadius
+  readonly property real holeRadius: effectiveMoldingPieces ? Math.max(0, Math.min(r, holeWidth / 2, holeHeight / 2)) : 0
   readonly property real borderInset: Math.max(0, borderWidth / 2)
   readonly property real moldingBorderWidth: borderWidth + (outputScale <= 1.25 ? 0.5 : 0)
   readonly property real borderLeft: holeX + borderInset
   readonly property real borderTop: holeY + borderInset
   readonly property real borderRight: holeRight - borderInset
   readonly property real borderBottom: holeBottom - borderInset
-  readonly property real borderRadius: Math.max(minArcRadius, holeRadius - borderInset)
+  readonly property real borderRadius: Math.max(0, holeRadius - borderInset)
   readonly property bool leftAttachmentGapVisible: effectiveLeftEdgeOccupied && attachedFlyoutVisible && attachedFlyoutHeight > 0
   readonly property bool rightAttachmentGapVisible: effectiveRightEdgeOccupied && attachedFlyoutVisible && attachedFlyoutHeight > 0
   readonly property real attachmentGapTop: Math.max(borderTop + borderRadius, attachedFlyoutY + borderInset)
@@ -96,7 +95,7 @@ Item {
       strokeColor: root.borderColor
       strokeWidth: root.borderWidth
       capStyle: ShapePath.FlatCap
-      joinStyle: ShapePath.RoundJoin
+      joinStyle: ShapePath.MiterJoin
       startX: root.borderLeft + root.borderRadius
       startY: root.borderTop
 
@@ -173,7 +172,7 @@ Item {
     ShapePath {
       fillColor: "transparent"
       strokeColor: root.borderColor
-      strokeWidth: root.moldingBorderWidth
+      strokeWidth: root.borderRadius > 0 ? root.moldingBorderWidth : 0
       capStyle: ShapePath.FlatCap
 
       startX: root.borderRight - root.borderRadius

@@ -59,20 +59,32 @@ def set_reduce_motion(enabled: bool) -> None:
     time.sleep(0.5)
 
 
-def set_molding_geometry(style: str, connector_pieces: bool, molding_pieces: bool, radius: int) -> dict:
+def set_molding_geometry(style: str, corner_mode: str, radius: int = 14) -> dict:
     data = read_settings()
-    data["version"] = 2
+    data["version"] = 3
     data["designStyle"] = style
-    sidebar = data.setdefault("sidebar", {})
-    sidebar["connectorPieces"] = connector_pieces
-    sidebar["cornerPieces"] = connector_pieces
-    frame = data.setdefault("frame", {})
-    frame["moldingPieces"] = molding_pieces
-    frame["radius"] = radius
+    geometry = data.setdefault("geometry", {})
+    geometry["cornerMode"] = corner_mode
+    geometry["cornerRadius"] = radius
+    # Keep the rollback alias coherent without touching the deprecated trim
+    # booleans: universal corners are their sole runtime owner.
+    data.setdefault("frame", {})["radius"] = 0 if corner_mode == "square" else radius
     write_settings(data)
     run(["omarchy", "restart", "shell"], timeout=60)
-    time.sleep(0.5)
-    return json.loads(run(["omarchy-shell", "lacuna-settings-state", "status"]))
+    deadline = time.monotonic() + 15
+    last_error = None
+    while time.monotonic() < deadline:
+        try:
+            status = json.loads(run(["omarchy-shell", "lacuna-settings-state", "status"]))
+            time.sleep(0.75)
+            # The restart helper can briefly expose IPC before every plugin is
+            # registered; require the state target to remain available.
+            json.loads(run(["omarchy-shell", "lacuna-settings-state", "status"]))
+            return status
+        except (AssertionError, json.JSONDecodeError) as error:
+            last_error = error
+            time.sleep(0.25)
+    raise AssertionError(f"lacuna settings IPC did not recover after shell restart: {last_error}")
 
 
 def summon_menu(flyout: str) -> None:
@@ -414,25 +426,32 @@ class LiveVisualTests(unittest.TestCase):
                     )
                     self.assertFalse(stopped_video.get("wallpaperRunning"), stopped_video)
 
-    def test_split_molding_connector_schema_visual_matrix(self):
-        # Capture each independent geometry control and every design style.
+    def test_universal_corner_trim_visual_matrix(self):
+        # Capture zero/positive universal corner states and every design style.
         # tearDown restores the exact pre-test settings document, including its
         # schema version and any provider credentials not inspected here.
         cases = (
-            ("lacuna-on", "lacuna", True, True, 14),
-            ("lacuna-connectors-off", "lacuna", False, True, 14),
-            ("lacuna-molding-off", "lacuna", True, False, 14),
-            ("lacuna-radius-zero", "lacuna", True, True, 0),
-            ("omarchy", "omarchy", True, True, 14),
-            ("material", "material", True, True, 14),
+            ("lacuna-theme", "lacuna", "theme", 14),
+            ("lacuna-square", "lacuna", "square", 14),
+            ("lacuna-custom-zero", "lacuna", "custom", 0),
+            ("lacuna-custom", "lacuna", "custom", 9),
+            ("omarchy", "omarchy", "theme", 14),
+            ("material", "material", "theme", 14),
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            for name, style, connectors, molding, radius in cases:
-                status = set_molding_geometry(style, connectors, molding, radius)
-                self.assertEqual(2, status.get("schemaVersion"), status)
-                self.assertEqual(connectors, status.get("sidebarConnectorPieces"), status)
-                self.assertEqual(molding, status.get("frameMoldingPieces"), status)
+            for name, style, corner_mode, radius in cases:
+                status = set_molding_geometry(style, corner_mode, radius)
+                self.assertEqual(3, status.get("schemaVersion"), status)
+                self.assertEqual(corner_mode, status.get("cornerMode"), status)
+                self.assertEqual(radius, status.get("cornerRadius"), status)
+                if corner_mode in {"square", "custom"}:
+                    hypr_rounding = json.loads(run(["hyprctl", "-j", "getoption", "decoration:rounding"]))
+                    expected_rounding = 0 if corner_mode == "square" else radius
+                    self.assertEqual(expected_rounding, hypr_rounding.get("int"), hypr_rounding)
+                else:
+                    rounding_override = Path.home() / ".local/state/omarchy/toggles/hypr/zz-lacuna-window-rounded.lua"
+                    self.assertFalse(rounding_override.exists(), rounding_override)
                 summon_menu("settings")
                 time.sleep(0.45)
                 image = root / f"{name}.png"

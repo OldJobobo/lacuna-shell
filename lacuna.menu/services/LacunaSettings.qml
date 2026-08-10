@@ -9,7 +9,7 @@ Item {
 
   // Keep this version separate from plugin manifest schemaVersion values. It
   // describes the on-disk Lacuna runtime settings contract only.
-  readonly property int settingsSchemaVersion: 2
+  readonly property int settingsSchemaVersion: 3
   readonly property string configDir: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/omarchy/lacuna"
   readonly property string settingsFile: configDir + "/settings.json"
   readonly property bool primarySettingsService: String(Qt.resolvedUrl(".")).indexOf("/lacuna.state/") >= 0
@@ -88,6 +88,10 @@ Item {
         material: {}
       },
       colorProfile: "semantic",
+      geometry: {
+        cornerMode: "theme",
+        cornerRadius: 14
+      },
       compact: false,
       reduceMotion: false,
       barSizeMode: "theme",
@@ -261,9 +265,23 @@ Item {
     value = value && typeof value === "object" ? value : ({})
     var next = defaultData()
     if (source && typeof source === "object") {
+      var sourceGeometry = source.geometry && typeof source.geometry === "object" ? source.geometry : ({})
       var sourceSidebar = source.sidebar && typeof source.sidebar === "object" ? source.sidebar : ({})
       var sourceAutoHide = sourceSidebar.autoHide && typeof sourceSidebar.autoHide === "object" ? sourceSidebar.autoHide : ({})
       var sourceFrame = source.frame && typeof source.frame === "object" ? source.frame : ({})
+      var legacyFrameRadius = boundedInt(sourceFrame.radius, 14, 0, 32)
+      var inferredCornerMode = sourceGeometry.cornerMode !== undefined
+        ? normalizeCornerMode(sourceGeometry.cornerMode)
+        : (sourceFrame.radius !== undefined && legacyFrameRadius === 0
+          ? "square"
+          : (sourceFrame.radius !== undefined && legacyFrameRadius !== 14 ? "custom" : "theme"))
+      next.geometry.cornerMode = inferredCornerMode
+      next.geometry.cornerRadius = boundedInt(sourceGeometry.cornerRadius,
+        inferredCornerMode === "custom" ? legacyFrameRadius : 14, 0, 32)
+      preserveUnknownJson(next.geometry, sourceGeometry, {
+        cornerMode: true,
+        cornerRadius: true
+      })
       var legacyCornerPieces = sourceSidebar.cornerPieces !== false
       next.sidebar.connectorPieces = typeof sourceSidebar.connectorPieces === "boolean"
         ? sourceSidebar.connectorPieces : legacyCornerPieces
@@ -280,6 +298,7 @@ Item {
         stylePresets: true,
         designStylePresets: true,
         colorProfile: true,
+        geometry: true,
         quickLaunchLayout: true,
         quickLaunchView: true,
         dailyLaunchLayout: true,
@@ -393,7 +412,6 @@ Item {
         // a separate feature and are intentionally not represented here.
         next.frame.roundedContentCorners = next.frame.moldingPieces
         next.frame.thickness = boundedInt(sourceFrame.thickness, 8, 2, 24)
-        next.frame.radius = boundedInt(sourceFrame.radius, 14, 0, 32)
         next.frame.shadowDirection = normalizeShadowDirection(sourceFrame.shadowDirection)
         var offset = shadowOffsetFor(next.frame.shadowDirection)
         next.frame.shadowOffsetX = boundedInt(source.frame.shadowOffsetX, offset.x, -8, 8)
@@ -412,6 +430,10 @@ Item {
           shadowOffsetY: true
         })
       }
+      // Compatibility alias for schema-v2 readers. Runtime geometry uses
+      // geometry.cornerMode/cornerRadius and never reads this value.
+      next.frame.radius = next.geometry.cornerMode === "square"
+        ? 0 : next.geometry.cornerRadius
     }
     next.version = root.settingsSchemaVersion
     return next
@@ -687,6 +709,12 @@ Item {
     var parsed = Math.round(Number(value))
     if (!isFinite(parsed)) return fallback
     return Math.max(minimum, Math.min(maximum, parsed))
+  }
+
+  function normalizeCornerMode(value) {
+    var mode = String(value || "").toLowerCase()
+    if (mode === "square" || mode === "custom") return mode
+    return "theme"
   }
 
   function normalizeFrameMode(value) {
@@ -1242,16 +1270,15 @@ Item {
     target: root.settingsIpcTarget
 
     function status(): string {
+      var geometry = root.data && root.data.geometry ? root.data.geometry : ({})
       var sidebar = root.data && root.data.sidebar ? root.data.sidebar : ({})
-      var frame = root.data && root.data.frame ? root.data.frame : ({})
       return JSON.stringify({
         ready: root.hasLoaded,
         settingsFile: root.settingsFile,
         schemaVersion: root.settingsSchemaVersion,
-        sidebarConnectorPieces: sidebar.connectorPieces !== false,
+        cornerMode: root.normalizeCornerMode(geometry.cornerMode),
+        cornerRadius: root.boundedInt(geometry.cornerRadius, 14, 0, 32),
         sidebarAutoHideEnabled: sidebar.autoHide && sidebar.autoHide.enabled === true,
-        frameMoldingPieces: frame.moldingPieces !== false,
-        frameRoundedContentCorners: frame.moldingPieces !== false,
         persistenceState: root.persistenceState,
         persistenceError: root.persistenceError,
         requestedRevision: root.requestedSaveRevision,

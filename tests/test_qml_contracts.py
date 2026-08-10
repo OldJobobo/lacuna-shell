@@ -224,9 +224,10 @@ class QmlContractTests(unittest.TestCase):
         self.assertIn("readonly property real borderInset: Math.max(0, borderWidth / 2)", border_window)
         self.assertIn("readonly property real moldingBorderWidth: borderWidth + (outputScale <= 1.25 ? 0.5 : 0)", border_window)
         self.assertNotIn("lowerLeftCornerRepaintedBySidebar", border_window)
-        self.assertIn("strokeWidth: root.moldingBorderWidth", border_window)
+        self.assertIn("strokeWidth: root.borderRadius > 0 ? root.moldingBorderWidth : 0", border_window)
         self.assertIn("readonly property real borderRight: holeRight - borderInset", border_window)
-        self.assertIn("readonly property real borderRadius: Math.max(minArcRadius, holeRadius - borderInset)", border_window)
+        self.assertIn("readonly property real borderRadius: Math.max(0, holeRadius - borderInset)", border_window)
+        self.assertIn("joinStyle: ShapePath.MiterJoin", border_window)
         self.assertIn("readonly property real attachmentGapTop: Math.max(borderTop + borderRadius, attachedFlyoutY + borderInset)", border_window)
         self.assertIn("readonly property real attachmentGapBottom: Math.min(borderBottom - borderRadius, attachedFlyoutY + attachedFlyoutHeight - borderInset)", border_window)
         self.assertIn("readonly property bool leftAttachmentGapVisible", border_window)
@@ -244,7 +245,7 @@ class QmlContractTests(unittest.TestCase):
         self.assertIn("readonly property real moldingBorderWidth: borderWidth + (outputScale <= 1.25 ? 0.5 : 0)", overlay)
         self.assertIn("readonly property real borderLeft: hasBorderGeometryRecord ? Number(borderGeometryRecord.holeX)", overlay)
         self.assertNotIn("lowerLeftCornerRepaintedBySidebar", overlay)
-        self.assertIn("strokeWidth: root.moldingBorderWidth", overlay)
+        self.assertIn("strokeWidth: root.borderRadius > 0 ? root.moldingBorderWidth : 0", overlay)
         self.assertIn("readonly property real strokeRight: borderRight - borderInset", overlay)
         self.assertIn("readonly property real attachedOutlineTop: connectorVisible && connectorHeight > 0", overlay)
         self.assertIn("? connectorY : flyoutY", overlay)
@@ -676,7 +677,11 @@ class QmlContractTests(unittest.TestCase):
         self.assertIn("function patchBarSize(payload: string): string", state)
         self.assertIn('key === "barSizeMode"', state)
         for qml in [state, menu]:
-            self.assertIn("settingsSchemaVersion: 2", qml)
+            self.assertIn("settingsSchemaVersion: 3", qml)
+            self.assertIn('cornerMode: "theme"', qml)
+            self.assertIn("cornerRadius: 14", qml)
+            self.assertIn("function normalizeCornerMode", qml)
+            self.assertIn("preserveUnknownJson(next.geometry, sourceGeometry", qml)
             self.assertIn("connectorPieces: true", qml)
             self.assertIn("moldingPieces: true", qml)
             self.assertIn("roundedContentCorners: true", qml)
@@ -700,6 +705,8 @@ class QmlContractTests(unittest.TestCase):
             self.assertIn('typeof source.barPresentation.portraitSplit === "boolean"', qml)
             self.assertIn("preserveUnknownJson(next.barPresentation, source.barPresentation", qml)
 
+        self.assertEqual(3, example["version"])
+        self.assertEqual({"cornerMode": "theme", "cornerRadius": 14}, example["geometry"])
         self.assertTrue(example["barPresentation"]["portraitSplit"])
         self.assertFalse(fixture["barPresentation"]["portraitSplit"])
         self.assertEqual({"keep": True}, fixture["barPresentation"]["futurePresentationField"])
@@ -740,9 +747,16 @@ class QmlContractTests(unittest.TestCase):
         sidebar_state = read("lacuna.menu/services/SidebarState.qml")
         self.assertNotIn("next.sidebar = {\n      defaultMode:", sidebar_state)
         self.assertIn("next.sidebar.defaultMode = defaultMode", sidebar_state)
-        self.assertIn("next.sidebar.connectorPieces = connectorPieces", sidebar_state)
-        self.assertIn("next.sidebar.cornerPieces = connectorPieces", sidebar_state)
+        self.assertNotIn("next.sidebar.connectorPieces = connectorPieces", sidebar_state)
+        self.assertNotIn("next.sidebar.cornerPieces = connectorPieces", sidebar_state)
+        self.assertNotIn("property bool connectorPieces", sidebar_state)
+        self.assertNotIn("function setConnectorPiecesEnabled", sidebar_state)
         self.assertIn("next.sidebar.autoHide.enabled = autoHideEnabled", sidebar_state)
+        for service_path in ("lacuna.state/Service.qml", "lacuna.menu/services/LacunaSettings.qml"):
+            status_service = read(service_path)
+            self.assertNotIn("sidebarConnectorPieces:", status_service)
+            self.assertNotIn("frameMoldingPieces:", status_service)
+            self.assertNotIn("frameRoundedContentCorners:", status_service)
         self.assertNotIn("autoHideRevealMode", sidebar_state)
         self.assertNotIn("property bool cornerPieces", sidebar_state)
 
@@ -2441,9 +2455,9 @@ class QmlContractTests(unittest.TestCase):
         self.assertNotIn("shadowEnabled: root.frameEnabled && root.frameShadow", bar)
 
         # The shadow is cast by the hidden caster, never by the painted
-        # shape. Its Shape source consumes the immutable target record rather
-        # than being rebuilt on every animation tick, and the caster hole
-        # still collapses to the owning bar edge when the frame is off.
+        # shape. Its Shape source consumes the effective frame transaction so
+        # fill, border, and shadow share one radius throughout live changes;
+        # the caster hole still collapses to the bar edge when the frame is off.
         self.assertIn("source: frameShadowCaster", frame)
         self.assertNotIn("source: frameSource", frame)
         self.assertIn("layer.enabled: true", frame)
@@ -2451,7 +2465,7 @@ class QmlContractTests(unittest.TestCase):
         self.assertIn("maskEnabled: root.shadowOnly", read("lacuna.menu/components/LacunaDropShadow.qml"))
         self.assertIn("maskInverted: root.shadowOnly", read("lacuna.menu/components/LacunaDropShadow.qml"))
         self.assertIn("property var shadowGeometryRecord: null", frame)
-        self.assertIn("shadowGeometryRecord: root.lacunaTargetFrameGeometryRecord(modelData)", bar)
+        self.assertIn("shadowGeometryRecord: root.lacunaFrameGeometryRecord(modelData)", bar)
         self.assertIn("shadowHoleLeftOverride >= 0 ? shadowHoleLeftOverride : shadowRecordHoleX", frame)
         self.assertIn('readonly property real casterHoleY: shadowFrameRenderable ? shadowRecordHoleY : (shadowBarPosition === "top" || shadowTopEdgeOccupied ? shadowBarSize : 0)', frame)
         self.assertIn("shadowHoleRightOverride >= 0 ? shadowHoleRightOverride : shadowRecordHoleRight", frame)
@@ -3311,15 +3325,18 @@ class QmlContractTests(unittest.TestCase):
         self.assertIn("live_gaps_enabled = any(value and value > 0 for value in [gaps_in, gaps_out])", state_script)
         self.assertIn("Use the active theme's tiled-window gap size", settings_window)
 
-    def test_window_corner_control_supports_square_rounded_and_theme_modes(self):
+    def test_universal_corner_control_owns_exact_window_rounding(self):
         service = read("lacuna.shell-settings/Service.qml")
         state_script = read("lacuna.shell-settings/scripts/omarchy-shell-settings-state.py")
         settings_window = read("lacuna.shell-settings/settings/OmarchyShellSettingsWindow.qml")
+        menu_window = read("lacuna.menu/menu/MenuWindow.qml")
 
         self.assertIn('option("square", "Square"', service)
         self.assertIn('option("rounded", "Rounded"', service)
         self.assertIn('option("theme", "Theme"', service)
         self.assertIn("function setWindowRoundingMode(value)", service)
+        self.assertIn("function setWindowRoundingRadius(value)", service)
+        self.assertIn("Math.max(0, Math.min(32, parsed))", service)
         self.assertIn('if (mode === "theme")', service)
         self.assertIn('if [ -f " + quote(stockNoGapsFile)', service)
         self.assertIn('rm -f " + quote(file) + " " + quote(stockNoGapsFile)', service)
@@ -3327,9 +3344,15 @@ class QmlContractTests(unittest.TestCase):
         self.assertIn('elif stock_no_gaps_flag:', state_script)
         self.assertIn('window_rounding_mode = "theme"', state_script)
         self.assertIn('"windowRoundingMode": window_rounding_mode', state_script)
-        self.assertIn('selectRow("corners", "Window Corners"', settings_window)
-        self.assertIn('"window-rounding-mode"', settings_window)
+        self.assertNotIn('selectRow("corners", "Window Corners"', settings_window)
+        self.assertNotIn('"window-rounding-mode"', settings_window)
         self.assertNotIn('toggleRow("corners", "Rounded Windows"', settings_window)
+        self.assertIn("function syncWindowCornerRadius(mode, radius)", menu_window)
+        self.assertIn('shellSettingsService.setWindowRoundingMode("theme")', menu_window)
+        self.assertIn("shellSettingsService.setWindowRoundingRadius(targetRadius)", menu_window)
+        self.assertIn("if (hasLacunaOverride && Number(hypr.windowRoundingOverrideRadius) === targetRadius) return", menu_window)
+        self.assertIn("if (hasLacunaOverride) shellSettingsService.setWindowRoundingMode(\"theme\")", menu_window)
+        self.assertIn("cornerWindowSyncTimer.restart()", menu_window)
 
     def test_shell_settings_service_load_has_timeout_watchdog(self):
         # A hung state subprocess must not wedge the service. A watchdog
@@ -4067,7 +4090,8 @@ class QmlContractTests(unittest.TestCase):
         self.assertIn("property real leftOccupiedWidth: 0", frame)
         self.assertIn("readonly property real holeX: hasGeometryRecord ? Number(geometryRecord.holeX || 0)", frame)
         self.assertIn("readonly property real holeRight: hasGeometryRecord ? Number(geometryRecord.holeRight || holeX + 1)", frame)
-        self.assertIn("readonly property real holeRadius: effectiveMoldingPieces ? Math.max(minArcRadius, Math.min(r, holeWidth / 2, holeHeight / 2)) : minArcRadius", frame)
+        self.assertIn("readonly property real minArcRadius: 0", frame)
+        self.assertIn("readonly property real holeRadius: effectiveMoldingPieces ? Math.max(0, Math.min(r, holeWidth / 2, holeHeight / 2)) : 0", frame)
         self.assertIn("property bool shadowEnabled: false", frame)
         self.assertIn("readonly property int topInset: topBar || effectiveTopEdgeOccupied ? effectiveBarSize : t", frame)
         self.assertIn("readonly property int leftInset: leftBar ? effectiveBarSize : t", frame)
@@ -4086,7 +4110,7 @@ class QmlContractTests(unittest.TestCase):
         self.assertIn("id: frameShadowCaster", frame)
         self.assertIn("source: frameShadowCaster", frame)
         self.assertIn("property var shadowGeometryRecord: null", frame)
-        self.assertIn("shadowGeometryRecord: root.lacunaTargetFrameGeometryRecord(modelData)", bar)
+        self.assertIn("shadowGeometryRecord: root.lacunaFrameGeometryRecord(modelData)", bar)
         self.assertIn('readonly property real casterHoleY: shadowFrameRenderable ? shadowRecordHoleY : (shadowBarPosition === "top" || shadowTopEdgeOccupied ? shadowBarSize : 0)', frame)
         self.assertIn("shadowEnabled: !root.suppressed && root.shadowEnabled && root.width > 0 && root.height > 0", frame)
         self.assertIn("id: shadowClip", frame)

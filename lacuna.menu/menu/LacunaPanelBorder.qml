@@ -28,7 +28,7 @@ Item {
   readonly property real strokeTop: flyoutY + borderInset
   readonly property real strokeRight: flyoutX + visibleFlyoutWidth - borderInset
   readonly property real strokeBottom: flyoutY + visibleFlyoutHeight - borderInset
-  readonly property real strokeRadius: Math.max(0.01, Math.min(panelRadius, visibleFlyoutWidth / 2, visibleFlyoutHeight / 2) - borderInset)
+  readonly property real strokeRadius: Math.max(0, Math.min(panelRadius, visibleFlyoutWidth / 2, visibleFlyoutHeight / 2) - borderInset)
   readonly property real effectiveConnectorWidth: connectorVisible ? Math.max(0, connectorWidth) : 0
   // Keep every exposed segment on the same half-pixel inset as the frame
   // border. Mixing integer connector/flyout coordinates with half-pixel frame
@@ -65,7 +65,7 @@ Item {
       strokeColor: root.borderColor
       strokeWidth: root.borderWidth
       capStyle: ShapePath.FlatCap
-      joinStyle: ShapePath.RoundJoin
+      joinStyle: ShapePath.MiterJoin
       startX: root.connectorVisible
         ? root.connectorOutlineX
         : root.strokeLeft
@@ -140,7 +140,7 @@ Item {
       strokeColor: root.borderColor
       strokeWidth: root.borderWidth
       capStyle: ShapePath.FlatCap
-      joinStyle: ShapePath.RoundJoin
+      joinStyle: ShapePath.MiterJoin
       startX: root.connectorVisible
         ? root.connectorOutlineX
         : root.strokeRight

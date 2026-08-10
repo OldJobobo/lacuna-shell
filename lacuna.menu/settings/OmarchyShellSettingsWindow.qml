@@ -250,7 +250,6 @@ Item {
       return [
         section("Tiling", "Hyprland layout toggles for application windows.", "shell"),
         toggleRow("density-normal", "Window Gaps", "Use the active theme's tiled-window gap size", "windowGapsEnabled", service.hyprValue("windowGapsEnabled", null), "shell"),
-        selectRow("corners", "Window Corners", "Force square or rounded corners, or follow the active theme", service.windowRoundingMode, service.windowRoundingOptions(), "window-rounding-mode", "shell", "Theme"),
         toggleRow("sidebar-overlay", "Single-Window Square", "Constrain one tiled window to a square aspect ratio", "singleWindowAspect", service.hyprValue("singleWindowAspect", null), "shell"),
         section("Shell Bar", "Visibility only. Bar layout remains in Omarchy's bar settings.", "shell"),
         toggleRow("sidebar-overlay", "Omarchy Bar", "Show or hide the host bar without killing shell", "barVisible", service.toggleValue("barVisible", true), "shell"),
@@ -351,7 +350,6 @@ Item {
     else if (entry.setting === "font") root.settingsService.setFont(value)
     else if (entry.setting === "monitor-scale") root.settingsService.setMonitorScale(value)
     else if (entry.setting === "power-profile") root.settingsService.setPowerProfile(value)
-    else if (entry.setting === "window-rounding-mode") root.settingsService.setWindowRoundingMode(value)
   }
 
   function handleOptionSelected(entry, value) {

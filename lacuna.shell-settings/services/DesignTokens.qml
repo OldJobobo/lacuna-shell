@@ -9,6 +9,9 @@ QtObject {
   property color foreground: "#d8dee9"
   property color background: "#101315"
   property color accent: "#88c0d0"
+  // Negative keeps the design-style fallback for standalone consumers.
+  // Shell hosts inject the one resolved theme/user exposed-corner radius.
+  property real exposedCornerRadius: -1
 
   readonly property string style: normalize(designStyle)
   readonly property bool lacuna: style === "lacuna"
@@ -16,7 +19,9 @@ QtObject {
   readonly property bool material: style === "material"
 
   readonly property int radius: lacuna ? 0 : omarchy ? 2 : 8
-  readonly property int panelRadius: lacuna ? 14 : omarchy ? 2 : 12
+  readonly property int panelRadius: exposedCornerRadius >= 0
+    ? Math.max(0, Math.round(exposedCornerRadius))
+    : (lacuna ? 14 : omarchy ? 2 : 12)
   readonly property int controlRadius: lacuna ? 0 : omarchy ? 2 : 9
   readonly property int borderWidth: lacuna ? 0 : 1
   readonly property real surfaceOpacity: lacuna ? 1.0 : omarchy ? 0.98 : 0.96
@@ -43,7 +48,8 @@ QtObject {
   readonly property int railSpacing: Math.round(mix(material ? 8 : 7, material ? 6 : 5))
   readonly property int railLeftInset: Math.round(mix(material ? 10 : 9, material ? 8 : 7))
   readonly property int railRightInset: railLeftInset
-  readonly property int joinRadius: lacuna ? Math.round(mix(18, 14)) : omarchy ? 0 : Math.round(mix(16, 12))
+  // Connector molding shares the same resolved radius as exposed corners.
+  readonly property int joinRadius: panelRadius
   readonly property int connectorOverlap: lacuna ? Math.round(mix(33, 25)) : omarchy ? 0 : Math.round(mix(28, 20))
   readonly property color borderColor: Qt.rgba(foreground.r, foreground.g, foreground.b, surfaceBorderOpacity)
   readonly property color stateColor: material ? foreground : accent

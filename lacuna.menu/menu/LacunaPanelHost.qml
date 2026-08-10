@@ -10,6 +10,7 @@ QtObject {
 
   property real connectorWidth: 0
   property real connectorOverlap: 0
+  property real panelRadius: 0
   property real flyoutY: 0
   property real flyoutWidth: 0
   property real flyoutHeight: 0
@@ -30,7 +31,7 @@ QtObject {
   readonly property real clampedFlyoutProgress: Math.max(0, Math.min(1, flyoutProgress))
   readonly property real clampedPanelGeometryProgress: Math.max(0, Math.min(1, panelGeometryProgress))
   readonly property var requestedPanelGeometry: makePanelGeometry(
-    flyoutY, flyoutWidth, flyoutHeight, connectorWidth, connectorOverlap, anchorRight)
+    flyoutY, flyoutWidth, flyoutHeight, connectorWidth, connectorOverlap, anchorRight, panelRadius)
   readonly property string panelGeometryKey: [
     geometrySemanticKey,
     Number(flyoutY),
@@ -38,6 +39,7 @@ QtObject {
     Number(flyoutHeight),
     Number(connectorWidth),
     Number(connectorOverlap),
+    Number(panelRadius),
     anchorRight
   ].join("|")
   readonly property var effectivePanelGeometry: interpolatePanelGeometry(
@@ -50,6 +52,7 @@ QtObject {
   readonly property real effectiveFlyoutHeight: Number(effectivePanelGeometry.flyoutHeight || 0)
   readonly property real effectiveConnectorWidth: Number(effectivePanelGeometry.connectorWidth || 0)
   readonly property real effectiveConnectorOverlap: Number(effectivePanelGeometry.connectorOverlap || 0)
+  readonly property real effectivePanelRadius: Number(effectivePanelGeometry.panelRadius || 0)
   readonly property bool effectiveAnchorRight: effectivePanelGeometry.anchorRight === true
   readonly property bool effectiveConnectorVisible: flyoutRenderable
     && effectiveConnectorWidth > connectorEpsilon
@@ -79,16 +82,17 @@ QtObject {
   readonly property real flyoutMaskHeight: flyoutRenderable ? effectiveFlyoutHeight : 0
 
   function emptyPanelGeometry() {
-    return makePanelGeometry(0, 0, 0, 0, 0, false)
+    return makePanelGeometry(0, 0, 0, 0, 0, false, 0)
   }
 
-  function makePanelGeometry(y, width, height, connector, overlap, right) {
+  function makePanelGeometry(y, width, height, connector, overlap, right, radius) {
     return {
       flyoutY: Math.max(0, Number(y) || 0),
       flyoutWidth: Math.max(0, Number(width) || 0),
       flyoutHeight: Math.max(0, Number(height) || 0),
       connectorWidth: Math.max(0, Number(connector) || 0),
       connectorOverlap: Math.max(0, Number(overlap) || 0),
+      panelRadius: Math.max(0, Number(radius) || 0),
       anchorRight: right === true
     }
   }
@@ -96,7 +100,7 @@ QtObject {
   function copyPanelGeometry(value) {
     var source = value && typeof value === "object" ? value : ({})
     return makePanelGeometry(source.flyoutY, source.flyoutWidth, source.flyoutHeight,
-      source.connectorWidth, source.connectorOverlap, source.anchorRight)
+      source.connectorWidth, source.connectorOverlap, source.anchorRight, source.panelRadius)
   }
 
   function interpolateValue(from, to, progress) {
@@ -120,6 +124,7 @@ QtObject {
       flyoutHeight: pixelSnap(interpolateValue(start.flyoutHeight, end.flyoutHeight, p)),
       connectorWidth: pixelSnap(interpolateValue(start.connectorWidth, end.connectorWidth, p)),
       connectorOverlap: pixelSnap(interpolateValue(start.connectorOverlap, end.connectorOverlap, p)),
+      panelRadius: pixelSnap(interpolateValue(start.panelRadius, end.panelRadius, p)),
       anchorRight: p < 0.5 ? start.anchorRight : end.anchorRight
     }
   }

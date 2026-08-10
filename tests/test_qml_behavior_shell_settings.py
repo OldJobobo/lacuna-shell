@@ -16,6 +16,7 @@ ShellRoot {{
 
   QtObject {{
     id: runner
+    signal queueDrained()
     function run(command) {{ testRoot.commands = testRoot.commands.concat([command]) }}
   }}
 
@@ -39,12 +40,31 @@ ShellRoot {{
       rounding: service.state.hypr.rounding,
       command: commands[commands.length - 1]
     }}
+    service.setWindowRoundingRadius(19)
+    var custom = {{
+      mode: service.state.hypr.windowRoundingMode,
+      rounding: service.state.hypr.rounding,
+      override: service.state.hypr.windowRoundingOverride,
+      overrideRadius: service.state.hypr.windowRoundingOverrideRadius,
+      command: commands[commands.length - 1]
+    }}
     service.setWindowRoundingMode("theme")
     var theme = {{
       mode: service.state.hypr.windowRoundingMode,
+      override: service.state.hypr.windowRoundingOverride,
+      overrideRadius: service.state.hypr.windowRoundingOverrideRadius,
       command: commands[commands.length - 1]
     }}
-    console.log("BEHAVE " + JSON.stringify({{ square: square, rounded: rounded, theme: theme }}))
+    var pendingBeforeDrain = service.styleRefreshPending
+    runner.queueDrained()
+    console.log("BEHAVE " + JSON.stringify({{
+      square: square,
+      rounded: rounded,
+      custom: custom,
+      theme: theme,
+      pendingBeforeDrain: pendingBeforeDrain,
+      pendingAfterDrain: service.styleRefreshPending
+    }}))
     quitTimer.start()
   }}
 
@@ -65,7 +85,17 @@ ShellRoot {{
         self.assertEqual(12, result["rounded"]["rounding"])
         self.assertIn("rounding = 12", result["rounded"]["command"])
 
+        self.assertEqual("rounded", result["custom"]["mode"])
+        self.assertEqual(19, result["custom"]["rounding"])
+        self.assertTrue(result["custom"]["override"])
+        self.assertEqual(19, result["custom"]["overrideRadius"])
+        self.assertIn("rounding = 19", result["custom"]["command"])
+
+        self.assertTrue(result["pendingBeforeDrain"])
+        self.assertFalse(result["pendingAfterDrain"])
         self.assertEqual("theme", result["theme"]["mode"])
+        self.assertFalse(result["theme"]["override"])
+        self.assertEqual(-1, result["theme"]["overrideRadius"])
         self.assertIn("rm -f", result["theme"]["command"])
         self.assertIn("window-no-gaps.lua", result["theme"]["command"])
         self.assertIn("Preserve disabled gaps", result["theme"]["command"])

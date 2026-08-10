@@ -31,6 +31,7 @@ RESET_OWNED_SETTINGS_KEYS = [
     "designStyle",
     "designStyles",
     "colorProfile",
+    "geometry",
     "compact",
     "barSizeMode",
     "quickLaunchLayout",
