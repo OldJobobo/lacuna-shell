@@ -59,7 +59,7 @@ Both services normalize the same runtime shape:
 
 ```json
 {
-  "version": 2,
+  "version": 3,
   "designStyle": "lacuna",
   "designStyles": {
     "lacuna": {
@@ -74,6 +74,10 @@ Both services normalize the same runtime shape:
     },
     "omarchy": {},
     "material": {}
+  },
+  "geometry": {
+    "cornerMode": "theme",
+    "cornerRadius": 14
   }
 }
 ```
@@ -86,15 +90,24 @@ booleans, finite numbers, nulls, arrays, and objects). Unsupported values are
 discarded. `migrateSettings()` owns version handling and always emits the
 current `settingsSchemaVersion`.
 
-Settings schema v2 separates attached-flyout connectors from frame molding:
-`sidebar.connectorPieces` controls only the molding bridge between the sidebar
-and an attached flyout. `frame.moldingPieces` controls the curved upper/lower
-frame joins and framed content radius, including the joins beside a visible
-sidebar. Migration precedence is `frame.moldingPieces`, then the interim
-`frame.roundedContentCorners` alias, then legacy `sidebar.cornerPieces`, then
-the enabled default. For one release, normalized settings retain both interim
-aliases for rollback. That downgrade is intentionally lossy once connector and
-frame molding values diverge.
+Settings schema v2 introduced separate `sidebar.connectorPieces` and
+`frame.moldingPieces` switches. Schema v3 retains those keys and their interim
+aliases only for settings-file rollback compatibility; runtime geometry no
+longer treats them as independent user controls.
+
+Settings schema v3 adds one exposed-corner policy. `geometry.cornerMode` is
+`theme`, `square`, or `custom`; theme mode consumes Omarchy's live
+`Style.cornerRadius`, square resolves to zero, and custom consumes the clamped
+`geometry.cornerRadius` value. Migration maps legacy `frame.radius: 0` to
+square, non-default legacy radii to custom, and the materialized v2 default 14
+(or a missing radius) to theme inheritance. `frame.radius` remains a one-release
+compatibility alias, but runtime frame and flyout geometry no longer reads it.
+The resolved radius also owns trim visibility and Hyprland application-window
+rounding: zero disables sidebar connector and frame molding pieces and writes a
+zero window override; a positive Custom value writes that exact radius; Theme
+removes the override and resumes theme inheritance. Independent trim and Window
+Corners settings rows are therefore removed. Unknown JSON-safe fields nested
+under `geometry` are preserved.
 
 The unqualified term **corner pieces** is reserved for a future, separate
 feature: black masks in the physical outer screen corners that make the outer

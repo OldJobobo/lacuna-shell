@@ -298,7 +298,9 @@ Use a handoff token containing:
 
 ### Required product decision
 
-Adopt narrow settings instead of one overloaded flag:
+> Superseded by schema v3 universal shell corners: the persisted v2 booleans below remain only as rollback aliases. Runtime connector and frame molding visibility is now `resolvedCornerRadius > 0`, and the independent settings controls are removed.
+
+The original schema-v2 split was:
 
 ```json
 {
@@ -320,28 +322,21 @@ Bar-widget flyout connectors should remain style-token-owned by default. Add a p
 First add `panelRadius` as an explicit `DesignTokens.qml` property and keep its
 vendored consumers synchronized with the documented radius table.
 
-- `sidebarConnectorWidth = sidebar.connectorPieces ? designTokens.joinRadius : 0`
-- `sidebarConnectorOverlap = sidebar.connectorPieces ? designTokens.connectorOverlap : 0`
-- `attachedFlyoutRadius = designTokens.panelRadius`
-- `frameContentRadius = frame.moldingPieces ? normalizedFrameRadius : 0`
-- Configured `frame.radius: 0` remains zero.
-- Alternate style and density tokens determine numeric radii; booleans only enable/disable their own family.
+- `trimEnabled = resolvedCornerRadius > 0`
+- `sidebarConnectorWidth = trimEnabled ? resolvedCornerRadius : 0`
+- `sidebarConnectorOverlap = trimEnabled ? designTokens.connectorOverlap : 0`
+- `attachedFlyoutRadius = resolvedCornerRadius`
+- `frameContentRadius = resolvedCornerRadius`
+- Theme and Square resolving to `0` disable both molding families; positive Theme or Custom values enable both.
 
-### Migration
+### Historical schema-v2 migration
 
-1. **Before any schema-v2 write**, implement nested unknown-field preservation
-   in the canonical settings service, sync its vendored menu copy, and pass
-   future-field parity tests.
-2. Bump the canonical settings schema and sync the vendored menu copy.
-3. Precedence: new key → legacy key → default.
-4. Legacy explicit false maps to both new sidebar-connector and frame-molding settings to preserve the initial migrated appearance.
-5. Missing/true maps both to true.
-6. For one release, write legacy `sidebar.cornerPieces` as an alias of
-   `sidebar.connectorPieces` only. Once connector and frame-molding values diverge,
-   downgrade is necessarily lossy; document and test the rollback conversion
-   rather than claiming both appearances survive.
-7. Change `SidebarState.save()` to merge, not reconstruct, the sidebar object.
-8. Update scripts, example settings, fixtures, IPC status, documentation, rollback behavior, and tests.
+The schema-v2 split and alias migration are complete and superseded by schema v3.
+Normalization still preserves `sidebar.connectorPieces`, `sidebar.cornerPieces`,
+`frame.moldingPieces`, and `frame.roundedContentCorners` for rollback only.
+`SidebarState` does not expose actions for them, IPC does not advertise them,
+and runtime geometry ignores their values. New work must use only
+`geometry.cornerMode` and `geometry.cornerRadius`.
 
 ### Geometry transactions
 

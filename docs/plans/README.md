@@ -64,6 +64,7 @@ These plans do not block beta or RC.
 | [Weather Flyout](./completed/lacuna-weather-flyout-plan.md) | Implemented and live-verified 2026-07-13 | Conditions, forecast, shared state, and attached geometry. |
 | [Workspaces Plugin](./completed/lacuna-workspaces-plugin-plan.md) | Done | Lacuna workspace bar widget. |
 | [Background Video Transitions](./completed/lacuna-youtube-video-transition-plan.md) | Implemented | Source-swap, cache, recovery, and watchdog lifecycle record. |
+| [Theme-Aware Corner Geometry](./completed/lacuna-theme-aware-corner-geometry-plan.md) | Complete; live-verified 2026-08-10 | Schema-v3 theme inheritance, Lacuna overrides, and unified frame/flyout corner geometry. |
 
 ## Archive
 

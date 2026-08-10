@@ -57,17 +57,17 @@ From `lacuna.menu/menu/MenuSurface.qml` and the corner system:
                  └──┘
 ```
 
-- If `sidebar.connectorPieces` is **enabled**: reserve `connectorWidth = joinRadius`, place the
-  flyout at `panelWidth + connectorWidth`, and draw the connector at `x: panelWidth` so it sits
-  *between* sidebar and flyout.
-- If connector pieces are **disabled**: attach the flyout directly at `panelWidth`.
-  This setting does not alter frame molding. The curved upper/lower frame joins
-  beside the sidebar are `frame.moldingPieces` and remain independently owned
-  by the frame.
+- If the universal resolved corner radius is **positive**: reserve `connectorWidth = joinRadius`, where
+  `joinRadius` is the same resolved theme/square/custom radius as the flyout's exposed corners;
+  place the flyout at `panelWidth + connectorWidth`, and draw the connector at `x: panelWidth` so
+  it sits *between* sidebar and flyout.
+- If the universal resolved corner radius is **zero**: connector pieces are disabled and the
+  flyout attaches directly at `panelWidth`. Any positive resolved radius enables connector
+  molding. There is no independent sidebar-connector setting.
 
 `LacunaPanelHost` applies this as a newest-wins geometry transaction. Flyout
-bounds, connector width/overlap, attachment offset, panel paint, shadow, border,
-and compositor input masks all read the same interpolated
+bounds, connector width/overlap, exposed radius, attachment offset, panel paint,
+shadow, border, and compositor input masks all read the same interpolated
 `effectivePanelGeometry`. A request that arrives mid-transition captures the
 currently painted geometry before targeting the new key. Effective values are
 pixel-snapped once at the transaction boundary so paint, shadow, border,
@@ -94,8 +94,9 @@ progress 1 without animation.
 ## Frame molding versus future corner pieces
 
 Frame molding pieces are the curved trim that joins frame rails around the
-content shell, including the upper and lower joins beside a sidebar. They use
-`frame.moldingPieces` and must never depend on `sidebar.connectorPieces`.
+content shell, including the upper and lower joins beside a sidebar. Like the
+sidebar connector, they are enabled exactly when the universal resolved corner
+radius is positive; there is no independent frame-molding setting.
 The four corners and their connecting rails must always have one rendering
 owner. On a screen without the hosted sidebar, the bar's Top frame paints the
 complete border. On the hosted-sidebar screen, the bar passes its authoritative
@@ -185,6 +186,21 @@ style (`omarchy`/`material` render flat) and derive their tone from the theme.
 A deliberate seam line is the sanctioned exception to "fill-only" — it is an *explicit edge*, not
 a frame around the shell.
 
+## Theme-aware exposed corners
+
+Lacuna has one universal corner policy. Its default `theme` mode removes Lacuna's Hyprland
+rounding override and consumes Omarchy's live `Style.cornerRadius` from the active theme. `square`
+writes Hyprland `decoration:rounding = 0`; `custom` writes the exact `geometry.cornerRadius`
+(0–32). Thus Lacuna surfaces, trim, and application windows share one live radius, and resetting
+to `theme` resumes inheritance everywhere.
+
+Attached-flyout fill, border, and shadow source consume that one resolved radius; compositor input regions continue to consume the same transactional surface bounds.
+Frame fill, frame border, frame shadow, video clipping, and vignette clipping consume
+`frameContentRadius = resolvedCornerRadius` from the authoritative frame geometry record. A zero
+radius is a genuinely square path, not a tiny cubic with a rounded stroke join, and disables both
+frame molding and sidebar connector pieces. Connector `joinRadius` equals the same resolved radius,
+so Theme, Square, and Custom own exposed corners and all trim as one geometry system.
+
 ## The radius scale
 
 Lacuna's interior is square; its *joins and exposed corners* carry the only radii. Values are
@@ -195,8 +211,8 @@ below). Current `lacuna`-style values in `DesignTokens.qml`:
 |---|---|---|---|
 | `radius` | `0` | `0` | interior surfaces / item backgrounds — **always square** |
 | `controlRadius` | `0` | `0` | controls (buttons, toggles) — **always square** |
-| `panelRadius` | `14` | `14` | exposed outer corners of a surface |
-| `joinRadius` | `18` | `14` | connector trim radius (also the connector width) |
+| `panelRadius` | theme/custom resolved | theme/custom resolved | exposed outer corners of a surface; standalone token fallback is `14` |
+| `joinRadius` | theme/custom resolved | theme/custom resolved | connector trim radius and width; identical to `panelRadius` |
 | `connectorOverlap` | `33` | `25` | how far the connector overlaps for a seamless join |
 | `borderWidth` | `0` | `0` | **no shell borders** (Principle 2 / fill-only) |
 
@@ -215,7 +231,8 @@ function mix(fullValue, compactValue) {
 }
 ```
 
-Spacing, insets, item heights, `joinRadius`, and `connectorOverlap` all flow through `mix()`.
+Spacing, insets, item heights, and `connectorOverlap` flow through `mix()`. `joinRadius` instead
+tracks the resolved exposed-corner radius exactly, independent of density.
 Representative spacing scale (`LacunaTokens.qml`): `tiny 2 · small 4 · normal 8 · large 10 ·
 xLarge 14`. Representative item heights (`DesignTokens.qml`, full→compact): `item 38→32 ·
 primary 40→34 · featured 48→42 · compact 32→28`.
@@ -228,10 +245,10 @@ conventional look; they are **not** the Lacuna language:
 | | `lacuna` | `omarchy` | `material` |
 |---|---|---|---|
 | `radius` | 0 | 2 | 8 |
-| `panelRadius` | 14 | 2 | 12 |
+| `panelRadius` fallback | 14 | 2 | 12 |
 | `controlRadius` | 0 | 2 | 9 |
 | `borderWidth` | 0 | 1 | 1 |
-| `joinRadius` | 18 | 0 | 16 |
+| `joinRadius` fallback | 14 | 2 | 12 |
 | `headerTreatment` | accent-line | body-border | tonal |
 | `railTreatment` | linework | contained | tonal |
 
@@ -245,3 +262,5 @@ The Carbon alias that previously made `lacuna === carbon` is **removed** (see
 3. **Molding connectors over rounded join corners.** Show the seam.
 4. **No `Rectangle.radius` on attached surfaces** — use per-corner `Shape` states.
 5. **Fill-only shells (`strokeWidth: 0`).** Borders belong to internal controls, not surfaces.
+6. **One resolved exposed-corner radius.** Theme inheritance is the default; Lacuna square/custom state is an explicit live override.
+7. **Borders trace authoritative geometry.** If frame molding resolves the frame radius to zero, the frame border is square too.
