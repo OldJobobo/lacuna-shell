@@ -64,7 +64,11 @@ Item {
   property string presentationMode: "auto"
   property string presentationState: "inline"
   property string videoQuality: "adaptive"
+  // Inline renderers exist once per output. A scalar last-writer-wins flag lets
+  // a hidden output unregister after the visible output registers, making
+  // presentation decisions depend on QML construction order.
   property bool inlineSurfaceAvailable: false
+  property var inlineSurfaceAvailability: ({})
   property bool backgroundSurfaceReady: false
   property bool presentationFallbackInline: false
   property bool backgroundVideoEnabled: false
@@ -98,6 +102,7 @@ Item {
   property bool backgroundResolveFailed: false
   property int videoResolveRevision: 0
   property int activeVideoResolveRevision: -1
+  property int activeVideoResolvePlaybackRevision: -1
   property int previewResolveGeneration: 0
   property int backgroundResolveGeneration: 0
   property int presentationRevision: 0
@@ -1034,7 +1039,12 @@ Item {
       adaptivePreviewStreamUrl = ""
       progressivePreviewStreamUrl = ""
       resolvingPreview = true
-      if (workerConfigured) requestWorkerVideoCandidates(track)
+      // startMpv() publishes playing synchronously, so background mode may
+      // already have submitted the same candidate request. Reuse it instead
+      // of canceling a valid current-session resolve and starting over.
+      if (workerConfigured && !(resolvingBackground && backgroundRequestUrl === url
+          && activeVideoResolveRevision >= 0 && activeVideoResolvePlaybackRevision === playbackSessionRevision))
+        requestWorkerVideoCandidates(track)
       return
     }
     if (providerFor(track) === "jellyfin") {
@@ -1069,7 +1079,8 @@ Item {
     if (url === "" || !itemHasVideo(track)) return
     var forceRefresh = bypassCache === true
     if (workerReady) {
-      if (!forceRefresh && resolvingBackground && backgroundRequestUrl === url && activeVideoResolveRevision >= 0) return
+      if (!forceRefresh && resolvingBackground && backgroundRequestUrl === url
+          && activeVideoResolveRevision >= 0 && activeVideoResolvePlaybackRevision === playbackSessionRevision) return
       backgroundRequestUrl = url
       backgroundStreamUrl = ""
       adaptiveBackgroundStreamUrl = ""
@@ -1077,7 +1088,8 @@ Item {
       backgroundResolveFailed = false
       resolvingBackground = true
       backgroundRequestRevision += 1
-      if (workerConfigured && (forceRefresh || !(resolvingPreview && previewRequestUrl === url && activeVideoResolveRevision >= 0)))
+      if (workerConfigured && (forceRefresh || !(resolvingPreview && previewRequestUrl === url
+          && activeVideoResolveRevision >= 0 && activeVideoResolvePlaybackRevision === playbackSessionRevision)))
         requestWorkerVideoCandidates(track, forceRefresh)
       return
     }
@@ -1119,6 +1131,7 @@ Item {
     if (!workerOperational || !track) return false
     videoResolveRevision += 1
     activeVideoResolveRevision = videoResolveRevision
+    activeVideoResolvePlaybackRevision = playbackSessionRevision
     return postWorker({
       type: "resolve-video",
       requestId: activeVideoResolveRevision,
@@ -1394,7 +1407,10 @@ Item {
 
   function togglePause() {
     if (!playing) {
-      if (hasTrack) startMpv(currentTrack)
+      // stop() intentionally clears every signed preview/background URL.
+      // Replaying through startMpv() alone restarts audio but never resolves a
+      // renderer source, leaving the sidebar on its static thumbnail forever.
+      if (hasTrack) playNormalized(currentTrack, false)
       else if (queue.length > 0) next()
       return
     }
@@ -1408,7 +1424,15 @@ Item {
 
   function setPresentationMode(value) {
     var next = normalizePresentationMode(value)
-    if (presentationMode === next && !presentationFallbackInline) return
+    var sameIntent = presentationMode === next && !presentationFallbackInline
+    var settled = next === "background"
+      ? presentationState === "background" && backgroundVideoEnabled
+      : next === "inline"
+        ? presentationState === "inline" && !backgroundVideoEnabled
+        : false
+    // A renderer failure can leave committed state behind the still-current
+    // user intent. Re-applying that intent must reconcile rather than return.
+    if (sameIntent && settled) return
     presentationFallbackInline = false
     presentationMode = next
     reconcilePresentationState()
@@ -1426,10 +1450,26 @@ Item {
     }
   }
 
-  function setInlineSurfaceAvailable(available) {
-    var next = available === true
-    if (inlineSurfaceAvailable === next) return
-    inlineSurfaceAvailable = next
+  function setInlineSurfaceAvailable(available, surfaceId) {
+    var key = String(surfaceId || "legacy")
+    var nextRegistry = Object.assign({}, inlineSurfaceAvailability)
+    if (available === true) nextRegistry[key] = true
+    else delete nextRegistry[key]
+
+    var nextAvailable = Object.keys(nextRegistry).some(function(candidate) {
+      return nextRegistry[candidate] === true
+    })
+    var availabilityChanged = inlineSurfaceAvailable !== nextAvailable
+    inlineSurfaceAvailability = nextRegistry
+    if (!availabilityChanged) return
+    inlineSurfaceAvailable = nextAvailable
+    if (!nextAvailable && pendingHandoffSurface === "inline") {
+      // The sidebar can auto-hide or move outputs during demotion. Do not wait
+      // forever for a destination renderer that just unregistered; reconcile
+      // immediately and perform the normal covered background teardown.
+      reconcilePresentationState()
+      return
+    }
     if (presentationMode === "auto") presentationReconcileTimer.restart()
   }
 
@@ -1537,6 +1577,11 @@ Item {
     clearRendererDeadline()
     presentationRecoveryTimer.stop()
     recoveryPresentationRevision = -1
+    // Clear the previous destination before changing the revision. QML change
+    // handlers run synchronously; leaving "inline" published here lets the
+    // tile report a new token during the revision signal, then this function
+    // clears that just-accepted token below and strands demotion.
+    pendingHandoffSurface = ""
     presentationRevision += 1
     activeHandoffToken = null
     handoffDiagnostics = ({})
@@ -1560,10 +1605,15 @@ Item {
         "Background video handoff timed out", expiredToken, handoffDiagnostics)
     }
     if (surface === "inline" && pendingHandoffSurface === "inline") {
+      // Timeout is the same renderer fact as direct failure; it must not
+      // reverse an explicit background-off intent.
       pendingHandoffSurface = ""
-      presentationState = "background"
+      clearRendererDeadline()
+      presentationState = "inline"
       handoffPhase = "presented"
-      backgroundVideoEnabled = true
+      backgroundVideoEnabled = false
+      backgroundSurfaceReady = false
+      presentationErrorText = "renderer-timeout"
       return true
     }
     return false
@@ -1712,7 +1762,12 @@ Item {
       handoffLastEvent = "ready:inline:" + normalized.sourceRevision
       return true
     }
-    return name === "inline"
+    if (name === "inline") {
+      presentationErrorText = ""
+      if (presentationState === "inline") handoffPhase = "presented"
+      return true
+    }
+    return false
   }
 
   function reportVideoFailure(surface, revision, reason, token, diagnostics) {
@@ -1752,10 +1807,15 @@ Item {
       return true
     }
     if (name === "inline" && pendingHandoffSurface === "inline") {
+      // Renderer failure is a fact, not permission to reverse the user's
+      // background-off intent. Commit inline with its static thumbnail
+      // fallback and let the background overlay complete covered teardown.
       pendingHandoffSurface = ""
-      presentationState = "background"
+      clearRendererDeadline()
+      presentationState = "inline"
       handoffPhase = "presented"
-      backgroundVideoEnabled = true
+      backgroundVideoEnabled = false
+      backgroundSurfaceReady = false
       presentationErrorText = failureReason
       return true
     }
@@ -1854,6 +1914,7 @@ Item {
     playbackSessionRevision += 1
     videoResolveRevision += 1
     activeVideoResolveRevision = -1
+    activeVideoResolvePlaybackRevision = -1
     previewResolveGeneration += 1
     backgroundResolveGeneration += 1
     previewRequestUrl = ""
@@ -3106,6 +3167,7 @@ Item {
         handoffLoadingAttempts: root.handoffLoadingAttempts,
         desiredBackgroundVideo: root.desiredBackgroundVideo,
         inlineSurfaceAvailable: root.inlineSurfaceAvailable,
+        inlineSurfaceCount: Object.keys(root.inlineSurfaceAvailability).length,
         videoQuality: root.videoQuality,
         providerFilter: root.providerFilter,
         providerStates: root.providerStates,

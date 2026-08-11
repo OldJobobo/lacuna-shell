@@ -39,7 +39,10 @@ suggestions and playback, avoiding cookie startup cost on every cold query.
 ## Playback Clock
 
 The worker samples mpv over its persistent IPC connection. The service
-interpolates the latest sample every 100ms while playing. Muted QML surfaces
+interpolates the latest sample every 100ms while playing. Stop clears signed
+renderer URLs; replay therefore follows the same `playNormalized()` transaction
+as a fresh play—new playback revision, candidate resolution, and presentation
+reconciliation—rather than restarting audio alone. Muted QML surfaces
 use this clock with three correction bands:
 
 - below 400ms: play at normal rate;
@@ -54,6 +57,11 @@ new track, explicit presentation choice, or manual stream refresh retries it.
 
 `presentationMode` is `inline`, `background`, or `auto`. Auto uses inline video
 while an inline surface is available and promotes to the background otherwise.
+Inline availability is registered per output and reduced to an any-visible
+projection; hidden output instances cannot overwrite a visible renderer through
+a last-writer-wins boolean. `presentationMode` is the user preference and owns
+the background-button selected state, while `backgroundVideoEnabled` only
+reports transition occupancy until a handoff settles.
 The public compatibility state remains `inline`, `promoting`, `background`,
 `demoting`, or `recovering`; the old surface remains alive until the destination
 reports ready.
@@ -73,9 +81,18 @@ state, and sanitized output diagnostics without signed URLs or raw backend
 errors. Internal URL-bearing refresh keys are reduced to a `set`/empty
 compatibility marker at the IPC boundary.
 
-Background source changes raise the black cover for 300ms, hold for 150ms,
-then reveal over 750ms. Exit uses 350ms to black and 600ms back to the Lacuna
-frame. Reduced motion uses 75ms transitions. The background layer remains
+Background source changes raise the black cover for 220ms, hold for at least
+80ms, then reveal over an 850ms sine-eased dissolve. Exit uses 240ms to black
+and 700ms back to the Lacuna frame. Reduced motion uses 75ms transitions. The
+player source is staged on its Loader and committed with the source generation,
+so an outgoing player never starts a duplicate network load. Cover release waits
+for the first valid decoded frame from a player in `PlayingState`, not merely a
+loaded backend status. Because some QtMultimedia backends do not forward
+`videoSink` frame notifications through `VideoOutput`, a 140ms bounded fallback
+accepts a still-current player only when it is both `PlayingState` and
+`LoadedMedia`/`BufferingMedia`/`BufferedMedia`; this prevents permanent
+black-cover stalls without
+restoring the old metadata-only early reveal. The background layer remains
 mapped to preserve layer-shell ordering and gates only its in-window paint.
 Its per-output clip consumes the bar-owned effective frame geometry record and
 monotonic revision; frame paint, border, background video, and vignette therefore

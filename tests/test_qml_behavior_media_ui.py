@@ -163,6 +163,7 @@ ShellRoot {{
     property int playbackSessionRevision: 3
     property int presentationRevision: 4
     property int videoResolveRevision: 8
+    property string pendingHandoffSurface: ""
     property int favoritesRevision: 0
     property bool currentFavorite: false
     property string repeatMode: "none"
@@ -196,15 +197,17 @@ ShellRoot {{
     onTriggered: {{
       var activeLoaded = tile.previewSourceLoaded
       var initialLoadingCalls = service.loadingCalls
-      var firstSourceRevision = service.lastLoadingToken.sourceRevision
+      var firstSourceRevision = tile.previewSourceRevision
       var oldGeneration = {{ source: tile.assignedPreviewSource, lacunaSourceRevision: firstSourceRevision }}
-      service.presentationState = "promoting"
       service.presentationRevision = 5
-      var promotionSourceRevision = service.lastLoadingToken.sourceRevision
-      service.presentationState = "demoting"
+      service.pendingHandoffSurface = "background"
+      service.presentationState = "promoting"
+      var promotionSourceRevision = tile.previewSourceRevision
       service.presentationRevision = 6
+      service.pendingHandoffSurface = "inline"
+      service.presentationState = "demoting"
       var newestPresentationRevision = service.lastLoadingToken.presentationRevision
-      var demotionSourceRevision = service.lastLoadingToken.sourceRevision
+      var demotionSourceRevision = tile.previewSourceRevision
       var lateOldEventAccepted = tile.inlineSourceGenerationIsCurrent(oldGeneration)
       var newestGenerationAccepted = tile.inlineSourceGenerationIsCurrent({{
         source: tile.assignedPreviewSource,
@@ -217,7 +220,7 @@ ShellRoot {{
       service.paused = false
       service.playing = true
       var replayLoaded = tile.previewSourceLoaded
-      var secondSourceRevision = service.lastLoadingToken.sourceRevision
+      var secondSourceRevision = tile.previewSourceRevision
       service.playing = false
       console.log("BEHAVE " + JSON.stringify({{
         activeLoaded: activeLoaded,
@@ -247,12 +250,12 @@ ShellRoot {{
         self.assertTrue(row["pausedLoaded"], output[-2000:])
         self.assertFalse(row["stoppedLoaded"], output[-2000:])
         self.assertTrue(row["replayLoaded"], output[-2000:])
-        self.assertGreaterEqual(row["loadingCalls"], 4, output[-2000:])
-        self.assertEqual(row["newLoadingCalls"], 3, output[-2000:])
-        self.assertGreater(row["promotionSourceRevision"], row["firstSourceRevision"])
-        self.assertGreater(row["demotionSourceRevision"], row["promotionSourceRevision"])
+        self.assertGreaterEqual(row["loadingCalls"], 3, output[-2000:])
+        self.assertEqual(row["newLoadingCalls"], 2, output[-2000:])
+        self.assertEqual(row["promotionSourceRevision"], row["firstSourceRevision"])
+        self.assertEqual(row["demotionSourceRevision"], row["promotionSourceRevision"])
         self.assertEqual(row["newestPresentationRevision"], 6)
-        self.assertFalse(row["lateOldEventAccepted"])
+        self.assertTrue(row["lateOldEventAccepted"])
         self.assertTrue(row["newestGenerationAccepted"])
         self.assertGreater(row["secondSourceRevision"], row["demotionSourceRevision"])
         self.assertFalse(row["rendererActive"], output[-2000:])

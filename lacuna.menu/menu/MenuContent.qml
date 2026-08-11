@@ -41,6 +41,7 @@ Column {
   property int iconRailWidth: 32
   property var designTokens: fallbackDesignTokens
   property var mediaPlayerService: null
+  property string mediaPlayerSurfaceId: "inline"
   readonly property int mediaPlayerReserveHeight: mediaPlayerSlot.visible ? mediaPlayerSlot.height + root.spacing : 0
   property var collapsedSections: ({})
   property bool quickLaunchOrderingUnlocked: false
@@ -989,6 +990,7 @@ Column {
     height: visible ? tileHeight : 0
     visible: root.mediaPlayerService !== null
     service: root.mediaPlayerService
+    surfaceId: root.mediaPlayerSurfaceId
     compact: root.compact
     designTokens: root.designTokens
     foreground: root.foreground

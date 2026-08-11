@@ -15,6 +15,13 @@ class MediaPresentationOrderingContractTests(unittest.TestCase):
         self.assertIn("if (!inlineSurfaceAvailable)", reconcile)
         self.assertIn('handoffLastEvent = "inline-without-surface:" + presentationRevision', reconcile)
         self.assertLess(reconcile.index('pendingHandoffSurface = "inline"'), reconcile.index('presentationState = "demoting"'))
+        begin_intent = service[service.index("function beginPresentationIntent(phase)") : service.index("function schedulePresentationRecovery()")]
+        self.assertLess(begin_intent.index('pendingHandoffSurface = ""'), begin_intent.index("presentationRevision += 1"))
+        self.assertIn("property var inlineSurfaceAvailability: ({})", service)
+        self.assertIn("function setInlineSurfaceAvailable(available, surfaceId)", service)
+        toggle = service[service.index("function togglePause()") : service.index("function setPresentationMode(")]
+        self.assertIn("if (hasTrack) playNormalized(currentTrack, false)", toggle)
+        self.assertNotIn("if (hasTrack) startMpv(currentTrack)", toggle)
 
 
 @unittest.skipUnless(HAVE_SESSION, "needs a quickshell binary and a Wayland session")
@@ -92,6 +99,124 @@ ShellRoot {{
         self.assertEqual(final["titles"], ["Remote", "Local"])
         self.assertEqual(final["youtubeCount"], 1)
         self.assertEqual(final["jellyfinCount"], 1)
+
+    def test_stop_then_play_resolves_video_again(self):
+        source_owner, source = make_media_player_source("{}")
+        messages = source / "worker-messages.jsonl"
+        worker = source / "scripts" / "media-player-worker"
+        worker.write_text(
+            "#!/usr/bin/env python3\n"
+            "import json, pathlib, sys\n"
+            f"messages = pathlib.Path({str(messages)!r})\n"
+            "def emit(value): print(json.dumps(value), flush=True)\n"
+            "emit({'type':'ready','mpv':True,'ytdlp':True})\n"
+            "for raw in sys.stdin:\n"
+            "    message=json.loads(raw)\n"
+            "    with messages.open('a', encoding='utf-8') as handle: handle.write(json.dumps(message)+'\\n')\n"
+            "    if message.get('type')=='configure': emit({'type':'configured'})\n"
+            "    elif message.get('type')=='play': emit({'type':'playback','revision':message['revision'],'running':True,'playing':True,'position':0,'duration':100})\n"
+            "    elif message.get('type')=='resolve-video': emit({'type':'video-candidates','requestId':message['requestId'],'revision':message['revision'],'adaptiveUrl':'','progressiveUrl':'https://video.example/replay.mp4','error':''})\n"
+            "    elif message.get('type')=='shutdown': break\n",
+            encoding="utf-8",
+        )
+        worker.chmod(0o755)
+        with source_owner, tempfile.TemporaryDirectory() as cfg:
+            qml = f"""
+import Quickshell
+import QtQuick
+ShellRoot {{
+  id: root
+  property var svc: null
+  property int phase: 0
+  Component.onCompleted: {{
+    var c=Qt.createComponent("{qml_url('lacuna.media-player/Service.qml')}", Component.PreferSynchronous)
+    svc=c.createObject(root, {{ manifest: {{ __sourceDir: "{source}" }} }})
+  }}
+  Timer {{
+    interval: 20; repeat: true; running: true
+    onTriggered: {{
+      if (!svc || !svc.workerOperational || !svc.stateLoaded) return
+      if (root.phase === 0) {{
+        root.phase = 1
+        svc.playNow({{ id:"replay", provider:"youtube", url:"https://example.test/replay", mediaType:"video" }})
+        return
+      }}
+      if (root.phase === 1 && svc.previewStreamUrl !== "") {{
+        root.phase = 2
+        svc.playNow(svc.currentTrack)
+        return
+      }}
+      if (root.phase === 2 && svc.previewStreamUrl !== "" && !svc.resolvingPreview
+          && svc.activeVideoResolvePlaybackRevision === svc.playbackSessionRevision) {{
+        root.phase = 3
+        svc.stop()
+        svc.togglePause()
+        return
+      }}
+      if (root.phase === 3 && svc.previewStreamUrl !== "" && !svc.resolvingPreview) {{
+        root.phase = 4
+        finish.restart()
+      }}
+    }}
+  }}
+  Timer {{ id: finish; interval: 80; onTriggered: {{
+    console.log("BEHAVE "+JSON.stringify({{ phase:root.phase, playing:svc.playing, preview:svc.previewStreamUrl }}))
+    svc.stop(); Qt.quit()
+  }} }}
+}}
+"""
+            output = run_quickshell(qml, config_home=Path(cfg), timeout=8)
+            posted = [json.loads(line) for line in messages.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+        require_no_qml_errors(output)
+        final = parse_behave(output)[-1]
+        self.assertEqual(final["phase"], 4, output[-2000:])
+        self.assertTrue(final["playing"], output[-2000:])
+        self.assertEqual(final["preview"], "https://video.example/replay.mp4", output[-2000:])
+        resolves = [row for row in posted if row.get("type") == "resolve-video"]
+        self.assertEqual(len(resolves), 3, posted)
+        self.assertEqual([row["revision"] for row in resolves], sorted(row["revision"] for row in resolves), posted)
+
+    def test_inline_surface_registry_is_not_last_writer_wins(self):
+        source_owner, source = make_media_player_source("{}")
+        with source_owner, tempfile.TemporaryDirectory() as cfg:
+            qml = f"""
+import Quickshell
+import QtQuick
+ShellRoot {{
+  id: root
+  property var svc: null
+  Component.onCompleted: {{
+    var c=Qt.createComponent("{qml_url('lacuna.media-player/Service.qml')}", Component.PreferSynchronous)
+    svc=c.createObject(root, {{ manifest: {{ __sourceDir: "{source}" }} }})
+    probe.restart()
+  }}
+  Timer {{ id: probe; interval: 30; onTriggered: {{
+    svc.setInlineSurfaceAvailable(true, "DP-1")
+    svc.setInlineSurfaceAvailable(false, "DP-2")
+    var visibleSurvivesHidden = svc.inlineSurfaceAvailable
+    svc.setInlineSurfaceAvailable(true, "DP-2")
+    svc.setInlineSurfaceAvailable(false, "DP-1")
+    var secondSurvivesFirst = svc.inlineSurfaceAvailable
+    svc.setInlineSurfaceAvailable(false, "DP-2")
+    console.log("BEHAVE "+JSON.stringify({{
+      visibleSurvivesHidden:visibleSurvivesHidden,
+      secondSurvivesFirst:secondSurvivesFirst,
+      finalAvailable:svc.inlineSurfaceAvailable,
+      finalCount:Object.keys(svc.inlineSurfaceAvailability).length
+    }}))
+    Qt.quit()
+  }} }}
+}}
+"""
+            output = run_quickshell(qml, config_home=Path(cfg), timeout=8)
+
+        require_no_qml_errors(output)
+        final = parse_behave(output)[-1]
+        self.assertTrue(final["visibleSurvivesHidden"])
+        self.assertTrue(final["secondSurvivesFirst"])
+        self.assertFalse(final["finalAvailable"])
+        self.assertEqual(final["finalCount"], 0)
 
     def test_background_refresh_forces_worker_cache_bypass(self):
         source_owner, source = make_media_player_source("{}")
@@ -318,6 +443,57 @@ ShellRoot {{
         self.assertEqual(final["boundedStreamCache"], 24)
         self.assertTrue(final["unconfiguredResolveRejected"])
 
+    def test_inline_timeout_and_surface_loss_keep_background_off_intent(self):
+        source_owner, source = make_media_player_source("{}")
+        with source_owner, tempfile.TemporaryDirectory() as cfg:
+            qml = f"""
+import Quickshell
+import QtQuick
+ShellRoot {{
+  id: root
+  property var svc: null
+  Component.onCompleted: {{
+    var c=Qt.createComponent("{qml_url('lacuna.media-player/Service.qml')}", Component.PreferSynchronous)
+    svc=c.createObject(root, {{ manifest: {{ __sourceDir: "{source}" }} }})
+    probe.restart()
+  }}
+  Timer {{ id: probe; interval: 30; onTriggered: {{
+    svc.currentTrack=svc.normalizeTrack({{ id:"timeout", provider:"youtube", url:"https://example.test/timeout", mediaType:"video" }})
+    svc.playing=true; svc.paused=false; svc.playbackSessionRevision=20
+    svc.setInlineSurfaceAvailable(true, "test")
+    svc.presentationMode="background"; svc.presentationState="background"
+    svc.backgroundVideoEnabled=true; svc.backgroundSurfaceReady=true
+    svc.setPresentationMode("inline")
+    svc.setInlineSurfaceAvailable(false, "test")
+    var surfaceLossState=svc.presentationState
+    var surfaceLossEnabled=svc.backgroundVideoEnabled
+
+    svc.setInlineSurfaceAvailable(true, "test")
+    svc.presentationState="background"; svc.backgroundVideoEnabled=true; svc.backgroundSurfaceReady=true
+    svc.setPresentationMode("inline")
+    var token={{ surface:"inline", playbackRevision:20, presentationRevision:svc.presentationRevision,
+      requestRevision:svc.videoResolveRevision, sourceRevision:1 }}
+    svc.reportVideoLoading("inline", token, {{ stage:"loading-renderer" }})
+    var handled=svc.handleRendererHandoffTimeout(token)
+    console.log("BEHAVE "+JSON.stringify({{ handled:handled, mode:svc.presentationMode,
+      state:svc.presentationState, enabled:svc.backgroundVideoEnabled, pending:svc.pendingHandoffSurface,
+      surfaceLossState:surfaceLossState, surfaceLossEnabled:surfaceLossEnabled }}))
+    Qt.quit()
+  }} }}
+}}
+"""
+            output = run_quickshell(qml, config_home=Path(cfg), timeout=8)
+
+        require_no_qml_errors(output)
+        final = parse_behave(output)[-1]
+        self.assertEqual(final["surfaceLossState"], "inline")
+        self.assertFalse(final["surfaceLossEnabled"])
+        self.assertTrue(final["handled"], output[-2000:])
+        self.assertEqual(final["mode"], "inline")
+        self.assertEqual(final["state"], "inline")
+        self.assertFalse(final["enabled"])
+        self.assertEqual(final["pending"], "")
+
     def test_tokenized_handoffs_reject_stale_callbacks_and_timers(self):
         source_owner, source = make_media_player_source("{}")
         with source_owner, tempfile.TemporaryDirectory() as cfg:
@@ -447,7 +623,7 @@ ShellRoot {{
         self.assertTrue(final["progressiveStillActive"])
         self.assertTrue(final["readyAccepted"])
         self.assertFalse(final["staleRecovery"])
-        self.assertEqual(final["finalState"], "background")
+        self.assertEqual(final["finalState"], "inline")
         self.assertEqual(final["finalPhase"], "presented")
         self.assertFalse(final["deadlineActive"])
         self.assertTrue(final["diagnosticsRedacted"])

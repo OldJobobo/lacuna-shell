@@ -28,11 +28,11 @@ class MediaOverlayContractTests(unittest.TestCase):
         overlay = read_overlay()
 
         for timing in [
-            "normalFadeCoverRiseDuration: 300",
-            "normalSourceHoldDuration: 150",
-            "normalFadeInDuration: 750",
-            "normalExitFadeToBlackDuration: 350",
-            "normalExitFadeFromBlackDuration: 600",
+            "normalFadeCoverRiseDuration: 220",
+            "normalSourceHoldDuration: 80",
+            "normalFadeInDuration: 850",
+            "normalExitFadeToBlackDuration: 240",
+            "normalExitFadeFromBlackDuration: 700",
             "reducedMotionDuration: 75",
             "outputRegistrationTimeoutDuration: 5000",
         ]:
@@ -52,16 +52,30 @@ class MediaOverlayContractTests(unittest.TestCase):
         self.assertIn("if (!allMatchedPlayersRegistered()) {", overlay)
         self.assertIn("if (!allMatchedPlayersReadyFor(activeSource) || !activePlayersConverged(400))", overlay)
         self.assertIn("property bool localPlayerReady: false", overlay)
-        self.assertIn("readonly property real localCoverOpacity: localPlayerReady ? root.fadeCoverOpacity : 1", overlay)
+        self.assertIn("readonly property real localCoverOpacity: root.resolvedLocalCoverOpacity(localPlayerReady)", overlay)
+        self.assertIn("target: backgroundOutput.videoSink", overlay)
+        self.assertIn("function onVideoFrameChanged(frame)", overlay)
+        self.assertIn("player.lacunaReady === true) return", overlay)
+        self.assertIn("player.playbackState !== MediaPlayer.PlayingState", overlay)
+        self.assertIn('typeof frame.isValid === "function" && !frame.isValid()', overlay)
         self.assertIn("property var targetScreen: videoWindow.modelData", overlay)
         self.assertIn("id: outputRegistrationTimer", overlay)
         self.assertNotIn("id: failureWatchdog", overlay)
         self.assertIn("function outputDiagnostics(stage)", overlay)
         self.assertIn("activeHandoffToken = makeHandoffToken(sourceRevision)", overlay)
         self.assertIn("id: backgroundPlayerLoader", overlay)
+        self.assertIn('property string sourceUrl: ""', overlay)
+        self.assertIn("source: backgroundPlayerLoader.sourceUrl", overlay)
+        self.assertIn("backgroundPlayerLoader.sourceUrl = root.activeSource", overlay)
         self.assertIn("function backgroundSourceGenerationIsCurrent(player)", overlay)
         self.assertIn("function onSourceRevisionChanged() { videoContent.recreatePlayer() }", overlay)
         self.assertIn("if (!sourceAssignmentNeeded) {", overlay)
+        refresh_key = overlay.index("wallpaperPositionRefreshKey = refreshKey")
+        refresh_call = overlay.index("service.updatePlaybackPosition()", refresh_key)
+        source_assignment = overlay.index("activeSource = videoSource", refresh_call)
+        self.assertLess(refresh_key, refresh_call)
+        self.assertLess(refresh_call, source_assignment)
+        self.assertNotIn("id: wallpaperPositionRefreshTimer", overlay)
         self.assertIn("fadeCoverAgeMs: root.fadeCoverStartedAt > 0", overlay)
         self.assertIn('wallpaperPositionRefreshKey: root.wallpaperPositionRefreshKey !== "" ? "set" : ""', overlay)
         self.assertNotIn("wallpaperPositionRefreshKey: root.wallpaperPositionRefreshKey,", overlay)
@@ -83,12 +97,34 @@ class MediaOverlayContractTests(unittest.TestCase):
         self.assertIn("outputRegistrationTimer.stop()", overlay)
         self.assertIn("waitingForPlayerReady = false", overlay)
         self.assertIn("if (!root.wallpaperDesired || root.exitTransitionActive) return", overlay)
+        self.assertIn("player.lacunaReady === true && player.playbackState === MediaPlayer.PlayingState", overlay)
+        self.assertNotIn("if (mediaStatus === MediaPlayer.LoadedMedia || mediaStatus === MediaPlayer.BufferedMedia)", overlay)
+
+    def test_playback_reuses_the_current_session_video_resolve(self):
+        service = (ROOT / "lacuna.media-player/Service.qml").read_text(encoding="utf-8")
+        start = service.index("function playNormalized(normalized, rememberPrevious)")
+        end = service.index("function refreshDependencies()", start)
+        body = service[start:end]
+
+        # Playback owns the session revision, so it must be established before
+        # a candidate request captures that revision.
+        self.assertLess(body.index("startMpv(normalized)"), body.index("resolvePreview(normalized)"))
+        self.assertLess(body.index("resolvePreview(normalized)"), body.index("reconcilePresentationState()"))
+        self.assertIn("resolvingBackground && backgroundRequestUrl === url", service)
+        self.assertIn("activeVideoResolvePlaybackRevision === playbackSessionRevision", service)
 
 
 @unittest.skipUnless(HAVE_SESSION, "needs a quickshell binary and a Wayland session")
 class MediaOverlayRuntimeTests(unittest.TestCase):
+    def test_cleared_source_cover_fades_to_static_wallpaper(self):
+        qml = f'''\nimport Quickshell\nimport QtQuick\n\nShellRoot {{\n  id: root\n  property var overlay: null\n  Component.onCompleted: {{\n    var c = Qt.createComponent("{qml_url('lacuna.media-player-video/Overlay.qml')}", Component.PreferSynchronous)\n    overlay = c.createObject(root, {{ manifest: {{ defaults: {{ targetOutput: "__missing_output__" }} }} }})\n    overlay.fadeCoverOpacity = 0.4\n    overlay.activeSource = ""\n    overlay.clearingWallpaperAfterExit = true\n    finish.restart()\n  }}\n  Timer {{\n    id: finish\n    interval: 10\n    onTriggered: {{\n      console.log("BEHAVE " + JSON.stringify({{ opacity: overlay.resolvedLocalCoverOpacity(false) }}))\n      Qt.quit()\n    }}\n  }}\n}}\n'''
+        output = run_quickshell(qml, timeout=8)
+        require_no_qml_errors(output)
+        result = parse_behave(output)[-1]
+        self.assertAlmostEqual(result["opacity"], 0.4, places=3, msg=output[-2000:])
+
     def test_matched_player_registration_and_readiness_gate(self):
-        qml = f'''\nimport Quickshell\nimport QtQuick\n\nShellRoot {{\n  id: root\n  property var overlay: null\n  Component.onCompleted: {{\n    var c = Qt.createComponent("{qml_url('lacuna.media-player-video/Overlay.qml')}", Component.PreferSynchronous)\n    overlay = c.createObject(root, {{ manifest: {{ defaults: {{ targetOutput: "ALL" }} }} }})\n    probe.restart()\n  }}\n  Timer {{\n    id: probe\n    interval: 10\n    onTriggered: {{\n      var expected = overlay.expectedMatchedPlayerCount()\n      var before = overlay.allMatchedPlayersRegistered()\n      for (var i = 0; i < Quickshell.screens.length; i++) {{\n        overlay.videoPlayers.push({{\n          targetScreen: Quickshell.screens[i],\n          source: "test-source",\n          lacunaReady: true,\n          position: 0\n        }})\n      }}\n      console.log("BEHAVE " + JSON.stringify({{\n        expected: expected,\n        before: before,\n        registered: overlay.allMatchedPlayersRegistered(),\n        ready: overlay.allMatchedPlayersReadyFor("test-source"),\n        diagnostics: overlay.outputDiagnostics("test")\n      }}))\n      Qt.quit()\n    }}\n  }}\n}}\n'''
+        qml = f'''\nimport Quickshell\nimport QtQuick\n\nShellRoot {{\n  id: root\n  property var overlay: null\n  Component.onCompleted: {{\n    var c = Qt.createComponent("{qml_url('lacuna.media-player-video/Overlay.qml')}", Component.PreferSynchronous)\n    overlay = c.createObject(root, {{ manifest: {{ defaults: {{ targetOutput: "ALL" }} }} }})\n    probe.restart()\n  }}\n  Timer {{\n    id: probe\n    interval: 10\n    onTriggered: {{\n      var expected = overlay.expectedMatchedPlayerCount()\n      var before = overlay.allMatchedPlayersRegistered()\n      for (var i = 0; i < Quickshell.screens.length; i++) {{\n        overlay.videoPlayers.push({{\n          targetScreen: Quickshell.screens[i],\n          source: "test-source",\n          lacunaReady: true,\n          lacunaSourceRevision: overlay.sourceRevision,\n          position: 0\n        }})\n      }}\n      console.log("BEHAVE " + JSON.stringify({{\n        expected: expected,\n        before: before,\n        registered: overlay.allMatchedPlayersRegistered(),\n        ready: overlay.allMatchedPlayersReadyFor("test-source"),\n        diagnostics: overlay.outputDiagnostics("test")\n      }}))\n      Qt.quit()\n    }}\n  }}\n}}\n'''
         output = run_quickshell(qml, timeout=8)
         require_no_qml_errors(output)
         result = parse_behave(output)[-1]

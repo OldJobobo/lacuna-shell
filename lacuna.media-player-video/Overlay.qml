@@ -71,11 +71,11 @@ Item {
     && service.playing === true
     && service.paused !== true
     && highResVideoSource === ""
-  readonly property int normalFadeCoverRiseDuration: 300
-  readonly property int normalSourceHoldDuration: 150
-  readonly property int normalFadeInDuration: 750
-  readonly property int normalExitFadeToBlackDuration: 350
-  readonly property int normalExitFadeFromBlackDuration: 600
+  readonly property int normalFadeCoverRiseDuration: 220
+  readonly property int normalSourceHoldDuration: 80
+  readonly property int normalFadeInDuration: 850
+  readonly property int normalExitFadeToBlackDuration: 240
+  readonly property int normalExitFadeFromBlackDuration: 700
   readonly property int reducedMotionDuration: 75
   readonly property int fadeCoverRiseDuration: transitionDuration(normalFadeCoverRiseDuration)
   readonly property int sourceHoldDuration: transitionDuration(normalSourceHoldDuration)
@@ -127,6 +127,14 @@ Item {
     return reducedMotion ? reducedMotionDuration : normalDuration
   }
 
+  function resolvedLocalCoverOpacity(localPlayerReady) {
+    // Once the source is cleared, the black cover must follow the root exit
+    // fade. Keeping it pinned opaque until Loader teardown creates a one-frame
+    // cut back to the static wallpaper.
+    if (activeSource === "" || clearingWallpaperAfterExit) return fadeCoverOpacity
+    return localPlayerReady === true ? fadeCoverOpacity : 1
+  }
+
   function outputMatches(screen) {
     if (allOutputs) return true
     var name = screen && screen.name !== undefined ? String(screen.name) : ""
@@ -143,10 +151,10 @@ Item {
   }
 
   function registeredMatchedPlayerCount() {
+    var screens = Quickshell.screens || []
     var count = 0
-    for (var i = 0; i < videoPlayers.length; i++) {
-      var player = videoPlayers[i]
-      if (player && outputMatches(player.targetScreen)) count += 1
+    for (var i = 0; i < screens.length; i++) {
+      if (outputMatches(screens[i]) && playerForScreen(screens[i]) !== null) count += 1
     }
     return count
   }
@@ -157,25 +165,32 @@ Item {
   }
 
   function allMatchedPlayersReadyFor(source) {
-    var expected = expectedMatchedPlayerCount()
+    var screens = Quickshell.screens || []
+    var expected = 0
     var ready = 0
-    for (var i = 0; i < videoPlayers.length; i++) {
-      var player = videoPlayers[i]
-      if (!player || !outputMatches(player.targetScreen) || String(player.source) !== source || !player.lacunaReady) continue
-      ready += 1
+    for (var i = 0; i < screens.length; i++) {
+      var screen = screens[i]
+      if (!outputMatches(screen)) continue
+      expected += 1
+      var player = playerForScreen(screen)
+      if (player && Number(player.lacunaSourceRevision) === sourceRevision
+          && String(player.source) === source && player.lacunaReady === true) ready += 1
     }
     return expected > 0 && ready >= expected
   }
 
   function playerForScreen(screen) {
     var name = screen && screen.name !== undefined ? String(screen.name) : ""
+    var fallback = null
     for (var i = 0; i < videoPlayers.length; i++) {
       var player = videoPlayers[i]
       var playerName = player && player.targetScreen && player.targetScreen.name !== undefined
         ? String(player.targetScreen.name) : ""
-      if (player && (player.targetScreen === screen || (name !== "" && playerName === name))) return player
+      if (!player || !(player.targetScreen === screen || (name !== "" && playerName === name))) continue
+      if (Number(player.lacunaSourceRevision) === sourceRevision) return player
+      if (fallback === null) fallback = player
     }
-    return null
+    return fallback
   }
 
   function playbackStateCategory(player) {
@@ -369,15 +384,19 @@ Item {
   }
 
   function activePlayersConverged(toleranceMs) {
-    var found = false
+    var screens = Quickshell.screens || []
+    var found = 0
     var target = Math.max(0, startPosition * 1000)
-    for (var i = 0; i < videoPlayers.length; i++) {
-      var player = videoPlayers[i]
-      if (!player || String(player.source) !== activeSource) continue
-      found = true
+    for (var i = 0; i < screens.length; i++) {
+      var screen = screens[i]
+      if (!outputMatches(screen)) continue
+      var player = playerForScreen(screen)
+      if (!player || Number(player.lacunaSourceRevision) !== sourceRevision
+          || String(player.source) !== activeSource) return false
+      found += 1
       if (Math.abs(target - player.position) >= toleranceMs) return false
     }
-    return found
+    return found > 0
   }
 
   function reportReady() {
@@ -454,7 +473,7 @@ Item {
     for (var i = 0; i < videoPlayers.length; i++) {
       var player = videoPlayers[i]
       if (!player || String(player.source) !== source) continue
-      if (player.playbackState === MediaPlayer.PlayingState || player.mediaStatus === MediaPlayer.BufferedMedia) return true
+      if (player.lacunaReady === true && player.playbackState === MediaPlayer.PlayingState) return true
     }
     return false
   }
@@ -635,15 +654,22 @@ Item {
     outputRegistrationTimer.stop()
 
     var refreshKey = sourceRevisionKey
-    if (wallpaperPositionRefreshKey !== refreshKey && !wallpaperPositionRefreshPending && service && typeof service.updatePlaybackPosition === "function") {
-      wallpaperPositionRefreshPending = true
+    if (wallpaperPositionRefreshKey !== refreshKey && service && typeof service.updatePlaybackPosition === "function") {
+      // The worker-backed clock refreshes synchronously; legacy probes report
+      // their result later through onPlaybackPositionChanged. Do not hold an
+      // already-opaque transition for an arbitrary timer before loading media.
+      wallpaperPositionRefreshKey = refreshKey
       service.updatePlaybackPosition()
-      wallpaperPositionRefreshTimer.restart()
-      return
     }
 
     if (!sourceAssignmentNeeded) {
-      if (waitingForPlayerReady && anyPlayerReadyFor(activeSource)) notePlayerReady()
+      if (anyPlayerReadyFor(activeSource)) {
+        // A quick inline/background reversal can cancel exit after the cover
+        // is already opaque. Re-arm readiness so the retained playing source
+        // fades back in instead of remaining behind black forever.
+        if (!waitingForPlayerReady) waitingForPlayerReady = true
+        notePlayerReady()
+      }
       return
     }
 
@@ -676,7 +702,6 @@ Item {
     adaptiveReadinessTimer.stop()
     readyConvergenceTimer.stop()
     driftValidationTimer.stop()
-    wallpaperPositionRefreshTimer.stop()
     waitingForPlayerReady = false
     driftValidationPending = false
     driftCorrectionBlocked = false
@@ -897,17 +922,6 @@ Item {
     }
   }
 
-  Timer {
-    id: wallpaperPositionRefreshTimer
-    interval: 300
-    repeat: false
-    onTriggered: {
-      root.wallpaperPositionRefreshKey = root.videoSource + "#" + root.backgroundRequestRevision + "#" + root.playbackSessionRevision
-      root.wallpaperPositionRefreshPending = false
-      root.syncWallpaper()
-    }
-  }
-
   property var videoPlayers: []
   readonly property int loadedPlayerCount: videoPlayers.length
 
@@ -964,7 +978,9 @@ Item {
           anchors.fill: parent
           property bool localPlayerReady: false
           readonly property var currentPlayer: backgroundPlayerLoader.item
-          readonly property real localCoverOpacity: localPlayerReady ? root.fadeCoverOpacity : 1
+          readonly property real localCoverOpacity: root.resolvedLocalCoverOpacity(localPlayerReady)
+
+          Component.onCompleted: recreatePlayer()
 
           function playerEventIsCurrent(player) {
             return player && player === currentPlayer && root.backgroundSourceGenerationIsCurrent(player)
@@ -974,15 +990,35 @@ Item {
             localPlayerReady = false
             backgroundPlayerLoader.active = false
             backgroundPlayerLoader.generation = root.sourceRevision
+            backgroundPlayerLoader.sourceUrl = root.activeSource
             backgroundPlayerLoader.active = true
           }
 
           function markLocalPlayerReady(player) {
-            if (!playerEventIsCurrent(player)) return
+            if (!playerEventIsCurrent(player) || player.lacunaReady === true) return
+            localReadyFallbackTimer.stop()
             player.lacunaReady = true
             root.syncVideoPosition(true)
             localPlayerReady = true
             root.notePlayerReady()
+          }
+
+          Timer {
+            id: localReadyFallbackTimer
+            interval: 140
+            repeat: false
+            onTriggered: {
+              var player = videoContent.currentPlayer
+              if (!videoContent.playerEventIsCurrent(player) || player.lacunaReady === true) return
+              if (player.playbackState !== MediaPlayer.PlayingState) return
+              if (player.mediaStatus !== MediaPlayer.LoadedMedia
+                  && player.mediaStatus !== MediaPlayer.BufferingMedia
+                  && player.mediaStatus !== MediaPlayer.BufferedMedia) return
+              // Some QtMultimedia backends do not forward videoSink frame
+              // signals through VideoOutput. A bounded playing+buffered settle
+              // prevents an otherwise permanent black cover.
+              videoContent.markLocalPlayerReady(player)
+            }
           }
 
           Rectangle {
@@ -998,8 +1034,12 @@ Item {
 
             Loader {
               id: backgroundPlayerLoader
+              // Stage source + generation on the Loader so changing
+              // root.activeSource cannot make the outgoing player begin a
+              // duplicate network load before it is destroyed.
               property int generation: 0
-              active: true
+              property string sourceUrl: ""
+              active: false
               sourceComponent: backgroundPlayerComponent
             }
 
@@ -1011,7 +1051,7 @@ Item {
                 property var targetScreen: videoWindow.modelData
                 property bool lacunaReady: false
                 readonly property int lacunaSourceRevision: backgroundPlayerLoader.generation
-                source: root.activeSource
+                source: backgroundPlayerLoader.sourceUrl
                 videoOutput: backgroundOutput
                 audioOutput: AudioOutput {
                   muted: true
@@ -1026,17 +1066,23 @@ Item {
                 }
                 onPlaybackStateChanged: {
                   if (!videoContent.playerEventIsCurrent(backgroundPlayerInstance)) return
-                  if (playbackState === MediaPlayer.PlayingState) {
-                    // A handoff can resume the same source without onSourceChanged.
-                    // Force a fresh lock to the live mpv clock in that case.
-                    videoContent.markLocalPlayerReady(backgroundPlayerInstance)
+                  if (playbackState === MediaPlayer.PlayingState
+                      && (mediaStatus === MediaPlayer.LoadedMedia || mediaStatus === MediaPlayer.BufferingMedia
+                        || mediaStatus === MediaPlayer.BufferedMedia))
+                    localReadyFallbackTimer.restart()
+                  else if (playbackState !== MediaPlayer.PlayingState) {
+                    localReadyFallbackTimer.stop()
+                    playbackRate = 1.0
                   }
-                  if (playbackState !== MediaPlayer.PlayingState) playbackRate = 1.0
                 }
                 onMediaStatusChanged: {
                   if (!videoContent.playerEventIsCurrent(backgroundPlayerInstance)) return
-                  if (mediaStatus === MediaPlayer.LoadedMedia || mediaStatus === MediaPlayer.BufferedMedia)
-                    videoContent.markLocalPlayerReady(backgroundPlayerInstance)
+                  // Loaded/Buffered only means the backend accepted the media;
+                  // the first frame may not exist yet. Keep the local cover
+                  // opaque until PlayingState confirms presentation started.
+                  if ((mediaStatus === MediaPlayer.LoadedMedia || mediaStatus === MediaPlayer.BufferingMedia
+                        || mediaStatus === MediaPlayer.BufferedMedia)
+                      && playbackState === MediaPlayer.PlayingState) localReadyFallbackTimer.restart()
                   if (mediaStatus === MediaPlayer.InvalidMedia) root.notePlayerError("invalid-media")
                 }
                 onErrorOccurred: function(error, errorString) {
@@ -1062,6 +1108,19 @@ Item {
               fillMode: VideoOutput.PreserveAspectCrop
             }
 
+            Connections {
+              target: backgroundOutput.videoSink
+              function onVideoFrameChanged(frame) {
+                // A backend can report Loaded/Playing before a decoded frame
+                // reaches the output. Accept only the first valid frame from a
+                // currently playing generation; later frames must never seek.
+                var player = videoContent.currentPlayer
+                if (!player || player.playbackState !== MediaPlayer.PlayingState) return
+                if (!frame || (typeof frame.isValid === "function" && !frame.isValid())) return
+                videoContent.markLocalPlayerReady(player)
+              }
+            }
+
             Rectangle {
               id: fadeCover
 
@@ -1079,7 +1138,7 @@ Item {
               Behavior on opacity {
                 NumberAnimation {
                   duration: root.fadeCoverDuration
-                  easing.type: Easing.InOutQuad
+                  easing.type: Easing.InOutSine
                 }
               }
             }

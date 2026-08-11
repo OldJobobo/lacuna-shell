@@ -12,6 +12,7 @@ Item {
   signal openRequested()
 
   property var service: null
+  property string surfaceId: "inline"
   property bool compact: false
   property color foreground: "#d8dee9"
   property color background: "#101315"
@@ -63,6 +64,7 @@ Item {
   readonly property bool sentToBackground: hasPresentationState
     ? presentationState === "background"
     : service && service.backgroundVideoEnabled === true
+  readonly property bool backgroundModeSelected: service && String(service.presentationMode || "auto") === "background"
   readonly property bool localPreviewVisible: hasTrack && !sentToBackground
   readonly property bool playing: service && service.playing === true && service.paused !== true
   readonly property string title: hasTrack ? service.displayTitle : (available ? "Media" : "Media unavailable")
@@ -166,7 +168,7 @@ Item {
 
   function reportInlineAvailability() {
     if (service && typeof service.setInlineSurfaceAvailable === "function")
-      service.setInlineSurfaceAvailable(root.visible && root.width > 0 && root.height > 0)
+      service.setInlineSurfaceAvailable(root.visible && root.width > 0 && root.height > 0, surfaceId)
   }
 
   function makeInlineHandoffToken(nextSourceRevision) {
@@ -182,7 +184,7 @@ Item {
   function inlineHandoffDiagnostics(stage) {
     var player = previewPlayer
     var registered = player !== null && previewSourceLoaded
-    var ready = player !== null && previewCanSeek()
+    var ready = player !== null && player.lacunaReady === true
     return {
       stage: String(stage || ""),
       expectedOutputs: localPreviewVisible ? 1 : 0,
@@ -210,7 +212,10 @@ Item {
   }
 
   function inlineSourceGenerationIsCurrent(player) {
-    return player && inlineTokenIsCurrent()
+    // Renderer lifetime follows media source generation, not presentation
+    // intent. Promotion must keep the working inline player alive while the
+    // background destination loads under cover.
+    return player
       && Number(player.lacunaSourceRevision) === previewSourceRevision
       && String(player.source || "") === assignedPreviewSource
   }
@@ -222,6 +227,7 @@ Item {
   function recreatePreviewPlayer() {
     previewPlayerLoader.active = false
     previewPlayerLoader.generation = previewSourceRevision
+    previewPlayerLoader.sourceUrl = assignedPreviewSource
     previewPlayerLoader.active = assignedPreviewSource !== ""
   }
 
@@ -254,7 +260,21 @@ Item {
       recreatePreviewPlayer()
       return
     }
-    if (assignedPreviewSource === desired && inlineTokenIsCurrent()) return
+    if (assignedPreviewSource === desired) {
+      // A new demotion intent needs a fresh report token, but not a fresh
+      // decoder. Presentation-only revisions must never reload the same URL.
+      if (pendingHandoffSurface === "inline" && !inlineTokenIsCurrent()) {
+        activePreviewHandoffToken = makeInlineHandoffToken(previewSourceRevision)
+        previewLoadingAccepted = false
+        previewLoadingReportPending = true
+        reportInlineLoading()
+        // The retained inline decoder may already have a presented frame, so
+        // no new videoSink event will arrive for this handoff-only token.
+        if (previewLoadingAccepted && previewPlayer && previewPlayer.lacunaReady === true)
+          reportInlineReady(previewPlayer)
+      }
+      return
+    }
     previewSourceRevision += 1
     activePreviewHandoffToken = makeInlineHandoffToken(previewSourceRevision)
     assignedPreviewSource = desired
@@ -267,17 +287,24 @@ Item {
     reportInlineLoading()
   }
 
+  function markInlineFrameReady(player) {
+    if (!previewEventIsCurrent(player) || player.lacunaReady === true) return
+    previewFrameReadyFallbackTimer.stop()
+    player.lacunaReady = true
+    syncPreviewPosition(true)
+    reportInlineReady(player)
+  }
+
   function reportInlineReady(player) {
     var renderer = player || previewPlayer
-    if (!previewEventIsCurrent(renderer) || !service || typeof service.reportVideoReady !== "function"
+    if (!previewEventIsCurrent(renderer) || renderer.lacunaReady !== true
+        || renderer.playbackState !== MediaPlayer.PlayingState
+        || !service || typeof service.reportVideoReady !== "function"
         || !previewVideoActive || !localPreviewVisible)
       return
 
     var target = Math.max(0, Math.round(playbackPosition * 1000))
-    if (Math.abs(renderer.position - target) < 400
-        && (renderer.playbackState === MediaPlayer.PlayingState
-          || renderer.mediaStatus === MediaPlayer.LoadedMedia
-          || renderer.mediaStatus === MediaPlayer.BufferedMedia))
+    if (Math.abs(renderer.position - target) < 400)
       service.reportVideoReady("inline", playbackRevision,
         Math.max(0, Number(renderer.position) || 0) / 1000,
         activePreviewHandoffToken, inlineHandoffDiagnostics("presented"))
@@ -535,7 +562,12 @@ Item {
   onPlaybackRevisionChanged: syncPreviewSource()
   onPresentationRevisionChanged: syncPreviewSource()
   onPendingHandoffSurfaceChanged: {
-    if (pendingHandoffSurface === "inline") reportInlineLoading()
+    if (pendingHandoffSurface === "inline") {
+      // Service publishes presentationRevision before the destination. Build
+      // the destination token now that both halves of the intent are visible.
+      syncPreviewSource()
+      reportInlineLoading()
+    }
   }
   onPreviewRequestRevisionChanged: syncPreviewSource()
   onPreviewUrlChanged: {
@@ -569,7 +601,7 @@ Item {
   }
   Component.onDestruction: {
     if (service && typeof service.setInlineSurfaceAvailable === "function")
-      service.setInlineSurfaceAvailable(false)
+      service.setInlineSurfaceAvailable(false, surfaceId)
   }
 
   width: parent ? parent.width : 260
@@ -646,6 +678,7 @@ Item {
       Loader {
         id: previewPlayerLoader
         property int generation: 0
+        property string sourceUrl: ""
         active: false
         sourceComponent: previewPlayerComponent
         onLoaded: root.finishPreviewPlayerLoad()
@@ -656,11 +689,12 @@ Item {
 
         MediaPlayer {
           id: previewPlayerInstance
+          property bool lacunaReady: false
           readonly property int lacunaSourceRevision: previewPlayerLoader.generation
           // Each token generation gets a new QtMultimedia instance. Late
           // backend events from a destroyed adaptive instance therefore
           // cannot be reported with the current progressive token.
-          source: root.assignedPreviewSource
+          source: previewPlayerLoader.sourceUrl
           videoOutput: previewOutput
           audioOutput: AudioOutput {
             muted: true
@@ -668,6 +702,8 @@ Item {
           }
           loops: MediaPlayer.Infinite
           onSourceChanged: {
+            lacunaReady = false
+            previewFrameReadyFallbackTimer.stop()
             root.resetPreviewTelemetry("source")
             root.syncPreviewPlayback()
           }
@@ -679,12 +715,13 @@ Item {
               // immediately instead of waiting for the settle timer.
               root.syncPreviewPosition(true)
               previewAdaptiveReadinessTimer.stop()
+              if (mediaStatus === MediaPlayer.LoadedMedia || mediaStatus === MediaPlayer.BufferingMedia
+                  || mediaStatus === MediaPlayer.BufferedMedia) previewFrameReadyFallbackTimer.restart()
               root.previewRecoveryAttempts = 0
               root.previewPlaybackStartedAt = Date.now()
               previewRecoveryTimer.stop()
               previewPositionSettleTimer.interval = 1800
               previewPositionSettleTimer.restart()
-              root.reportInlineReady(previewPlayerInstance)
             } else if (root.previewVideoActive && root.localPreviewVisible && root.playing) {
               previewRecoveryTimer.restart()
             }
@@ -692,15 +729,16 @@ Item {
           onMediaStatusChanged: {
             if (!root.previewEventIsCurrent(previewPlayerInstance)) return
             root.samplePreviewTelemetry("media-" + root.mediaStatusName(mediaStatus))
-            if (mediaStatus === MediaPlayer.LoadedMedia || mediaStatus === MediaPlayer.BufferedMedia) {
+            if (mediaStatus === MediaPlayer.LoadedMedia || mediaStatus === MediaPlayer.BufferingMedia
+                || mediaStatus === MediaPlayer.BufferedMedia) {
               previewAdaptiveReadinessTimer.stop()
               if (root.playing && root.localPreviewVisible) previewPlayerInstance.play()
               if (root.playing && root.localPreviewVisible) root.syncPreviewPosition(true)
+              if (playbackState === MediaPlayer.PlayingState) previewFrameReadyFallbackTimer.restart()
               if (root.previewPositionPending && !root.previewStartupSettling()) {
                 previewPositionSettleTimer.interval = 350
                 previewPositionSettleTimer.restart()
               }
-              root.reportInlineReady(previewPlayerInstance)
             } else if (mediaStatus === MediaPlayer.InvalidMedia && root.previewVideoActive && root.localPreviewVisible && root.playing) {
               root.reportInlineFailure("invalid-media", previewPlayerInstance)
               previewRecoveryTimer.restart()
@@ -716,6 +754,16 @@ Item {
         fillMode: VideoOutput.PreserveAspectCrop
       }
 
+      Connections {
+        target: previewOutput.videoSink
+        function onVideoFrameChanged(frame) {
+          var player = root.previewPlayer
+          if (!player || player.playbackState !== MediaPlayer.PlayingState) return
+          if (!frame || (typeof frame.isValid === "function" && !frame.isValid())) return
+          root.markInlineFrameReady(player)
+        }
+      }
+
       Image {
         anchors.fill: parent
         property string primaryThumbnail: root.thumbnail
@@ -724,7 +772,7 @@ Item {
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         opacity: root.previewVideoActive && root.previewPlayer
-          && root.previewPlayer.playbackState === MediaPlayer.PlayingState ? 0 : 1
+          && root.previewPlayer.lacunaReady === true ? 0 : 1
         visible: root.thumbnail !== "" && status !== Image.Error && opacity > 0
         onPrimaryThumbnailChanged: thumbnailFailed = false
         onStatusChanged: if (status === Image.Error && root.thumbnailFallback !== "") thumbnailFailed = true
@@ -871,8 +919,8 @@ Item {
           LacunaIconButton {
             icon: "background"
             accessibleName: "Toggle background video"
-            foreground: root.service && root.service.backgroundVideoEnabled ? root.accent : root.foreground
-            muted: root.service && root.service.backgroundVideoEnabled ? root.accent : root.muted
+            foreground: root.backgroundModeSelected ? root.accent : root.foreground
+            muted: root.backgroundModeSelected ? root.accent : root.muted
             accent: root.accent
             hoverAccent: root.accent
             buttonSize: root.compact ? 24 : 26
@@ -1076,6 +1124,21 @@ Item {
       interval: 900
       repeat: false
       onTriggered: root.recoverPreviewPlayback()
+    }
+
+    Timer {
+      id: previewFrameReadyFallbackTimer
+      interval: 140
+      repeat: false
+      onTriggered: {
+        var player = root.previewPlayer
+        if (!root.previewEventIsCurrent(player) || player.lacunaReady === true) return
+        if (player.playbackState !== MediaPlayer.PlayingState) return
+        if (player.mediaStatus !== MediaPlayer.LoadedMedia
+            && player.mediaStatus !== MediaPlayer.BufferingMedia
+            && player.mediaStatus !== MediaPlayer.BufferedMedia) return
+        root.markInlineFrameReady(player)
+      }
     }
 
     Timer {

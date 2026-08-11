@@ -2893,6 +2893,7 @@ Item {
         muted: root.muted
         iconRailWidth: root.barControlSize
         mediaPlayerService: root.mediaPlayerService
+        mediaPlayerSurfaceId: "sidebar:" + menuWindow.outputName
         onActivated: function(entry) {
           root.activate(entry)
         }
