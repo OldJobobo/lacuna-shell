@@ -30,7 +30,7 @@ class DocsContractTests(unittest.TestCase):
         self.assertIn("0.1.0beta.4", release_notes)
         self.assertIn("omarchy pkg aur add lacuna-shell", user_install)
         self.assertIn("sudo pacman -U", user_install)
-        self.assertIn("releases/download/v0.1.0-beta.4", user_install)
+        self.assertIn("releases/download/v0.1.0-beta.5", user_install)
         self.assertIn("single", submission)
         self.assertIn("`lacuna-shell` AUR package", submission)
         self.assertNotIn("GitHub prereleases only", package)
@@ -551,15 +551,15 @@ class DocsContractTests(unittest.TestCase):
     def test_beta_candidate_changelog_is_honest_and_scoped(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         self.assertIn("## [Unreleased]", changelog)
-        self.assertIn("## [0.1.0-beta.4] - 2026-08-10", changelog)
-        self.assertLess(changelog.index("## [Unreleased]"), changelog.index("## [0.1.0-beta.4]"))
+        self.assertIn("## [0.1.0-beta.5] - 2026-08-11", changelog)
+        self.assertLess(changelog.index("## [Unreleased]"), changelog.index("## [0.1.0-beta.5]"))
         self.assertIn("### Beta scope", changelog)
         self.assertIn("### Migration", changelog)
         self.assertIn("### Known limitations", changelog)
         self.assertIn("`beta`,\n  `experimental`, `deprecated`", changelog)
         self.assertIn("this is not a declaration of minimum supported", changelog)
         self.assertIn("P1 completion and destructive lifecycle rehearsal are separate", changelog)
-        self.assertIn("compare/v0.1.0-beta.4...HEAD", changelog)
+        self.assertIn("compare/v0.1.0-beta.5...HEAD", changelog)
         self.assertNotIn("(`stable`,\n  `experimental`, `deprecated`)", changelog)
 
     def test_distribution_scaffolding_exists(self):

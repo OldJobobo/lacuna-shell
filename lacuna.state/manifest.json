@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.state",
   "name": "Lacuna State",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "author": "Lacuna",
   "description": "Shared Lacuna runtime settings and normalization service.",
   "kinds": [

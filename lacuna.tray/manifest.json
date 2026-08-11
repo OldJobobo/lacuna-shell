@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.tray",
   "name": "Lacuna Tray",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "author": "Lacuna",
   "description": "System tray widget with Lacuna-safe DBus menu anchoring.",
   "kinds": [

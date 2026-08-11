@@ -7,6 +7,18 @@ and the suite version lives in [`VERSION`](VERSION) and is mirrored into every
 
 ## [Unreleased]
 
+## [0.1.0-beta.5] - 2026-08-11
+
+### Fixed
+- Media playback now holds inline video on its thumbnail until mpv advances,
+  preventing repeated zero-position startup samples from visibly restarting the
+  renderer during provider buffering.
+- Inline and background video now prefer stable progressive streams over
+  unreliable HLS playback, while retaining adaptive video as a last resort.
+- Background and inline presentation handoffs no longer restart an in-flight
+  resolution or transition, and stopping playback reliably returns presentation
+  mode to inline.
+
 ## [0.1.0-beta.4] - 2026-08-10
 
 ### Added
@@ -142,7 +154,8 @@ and the suite version lives in [`VERSION`](VERSION) and is mirrored into every
   single-root release archives, local `makepkg`/`namcap` rehearsal, strict AUR
   publication gates, and a clean-chroot submission runbook.
 
-[Unreleased]: https://github.com/OldJobobo/lacuna-shell/compare/v0.1.0-beta.4...HEAD
+[Unreleased]: https://github.com/OldJobobo/lacuna-shell/compare/v0.1.0-beta.5...HEAD
+[0.1.0-beta.5]: https://github.com/OldJobobo/lacuna-shell/releases/tag/v0.1.0-beta.5
 [0.1.0-beta.4]: https://github.com/OldJobobo/lacuna-shell/releases/tag/v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/OldJobobo/lacuna-shell/releases/tag/v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/OldJobobo/lacuna-shell/releases/tag/v0.1.0-beta.2

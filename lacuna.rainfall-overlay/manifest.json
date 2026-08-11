@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.rainfall-overlay",
   "name": "Lacuna Rainfall Overlay",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "author": "Lacuna",
   "description": "Subtle bottom-layer rain streaks for animated wallpaper ambience.",
   "kinds": [

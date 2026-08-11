@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.film-grain-overlay",
   "name": "Lacuna Film Grain Overlay",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "author": "Lacuna",
   "description": "Fine animated film grain for subtle desktop texture.",
   "kinds": [

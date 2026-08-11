@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.codex-usage",
   "name": "Lacuna Codex Usage",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "author": "Lacuna",
   "description": "Lacuna-styled top-bar widget for Codex weekly usage.",
   "kinds": [

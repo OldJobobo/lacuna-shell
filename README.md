@@ -7,7 +7,7 @@ optional desktop ambience—all inside the Omarchy shell you already use.
 ![Lacuna desktop with its connected bar, frame, sidebar, widgets, and desktop clock](docs/screenshots/readme/lacuna-desktop.webp)
 
 > [!IMPORTANT]
-> Lacuna is public beta software on the `0.1.0-beta.4` line. It is usable and
+> Lacuna is public beta software on the `0.1.0-beta.5` line. It is usable and
 > transactionally installed, but the stable compatibility range is not yet
 > frozen. Read the [known limitations](docs/help/known-limitations.md).
 
@@ -44,8 +44,8 @@ unavailable, install the verified package from the GitHub prerelease and open
 the guided installer:
 
 ```bash
-curl -fLO https://github.com/OldJobobo/lacuna-shell/releases/download/v0.1.0-beta.4/lacuna-shell-0.1.0beta.4-1-any.pkg.tar.zst
-sudo pacman -U ./lacuna-shell-0.1.0beta.4-1-any.pkg.tar.zst
+curl -fLO https://github.com/OldJobobo/lacuna-shell/releases/download/v0.1.0-beta.5/lacuna-shell-0.1.0beta.5-1-any.pkg.tar.zst
+sudo pacman -U ./lacuna-shell-0.1.0beta.5-1-any.pkg.tar.zst
 lacuna-shell
 ```
 

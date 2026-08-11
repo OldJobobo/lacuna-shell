@@ -10,7 +10,7 @@
 <p class="lacuna-hero__lede">Lacuna joins a custom bar, full-screen frame, utility sidebar, focused controls, media, and optional ambience inside the Omarchy shell you already use.</p>
 
 <div class="lacuna-release">
-  <span class="lacuna-release__version">0.1.0-beta.4</span>
+  <span class="lacuna-release__version">0.1.0-beta.5</span>
   <p>Public beta. Check the reviewed host versions before installing.</p>
   <a href="help/compatibility/">Check compatibility <span aria-hidden="true">→</span></a>
 </div>

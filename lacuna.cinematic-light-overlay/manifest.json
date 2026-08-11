@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.cinematic-light-overlay",
   "name": "Lacuna Cinematic Light",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "author": "Lacuna",
   "description": "Warm filmic horizontal light bleed and lens flare for animated wallpaper ambience.",
   "kinds": [

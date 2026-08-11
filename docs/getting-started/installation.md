@@ -12,8 +12,8 @@ The AUR is temporarily unavailable. Install the verified package attached to
 the GitHub prerelease instead:
 
 ```bash
-curl -fLO https://github.com/OldJobobo/lacuna-shell/releases/download/v0.1.0-beta.4/lacuna-shell-0.1.0beta.4-1-any.pkg.tar.zst
-sudo pacman -U ./lacuna-shell-0.1.0beta.4-1-any.pkg.tar.zst
+curl -fLO https://github.com/OldJobobo/lacuna-shell/releases/download/v0.1.0-beta.5/lacuna-shell-0.1.0beta.5-1-any.pkg.tar.zst
+sudo pacman -U ./lacuna-shell-0.1.0beta.5-1-any.pkg.tar.zst
 ```
 
 When the AUR is available again, the normal command is:

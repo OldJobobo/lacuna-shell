@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.dust-motes-overlay",
   "name": "Lacuna Dust Motes Overlay",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "author": "Lacuna",
   "description": "Slow floating dust motes for quiet wallpaper depth.",
   "kinds": [

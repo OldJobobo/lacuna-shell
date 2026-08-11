@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.compact-pill",
   "name": "Lacuna Size Pill",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "author": "Lacuna",
   "description": "Toggle Lacuna and Omarchy host bar sizing between compact and full modes.",
   "kinds": [

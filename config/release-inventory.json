@@ -24,6 +24,7 @@
       "qml/simple-bar/MotionTokens.qml"
     ],
     "configFiles": [
+      "hypr/zz-lacuna-layer-animation.lua",
       "omakase-profile.json",
       "quattro-compatibility.json",
       "release-inventory.json",

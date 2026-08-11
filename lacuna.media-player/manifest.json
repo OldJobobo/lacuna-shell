@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.media-player",
   "name": "Lacuna Media Player",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "author": "Lacuna",
   "description": "Responsive multi-provider media search, queue, and synchronized mpv playback for Lacuna.",
   "kinds": [
