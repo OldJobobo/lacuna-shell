@@ -49,9 +49,13 @@ Item {
   readonly property bool adaptivePreferred: videoQuality !== "stable"
     && videoQuality !== "progressive"
     && videoQuality !== "360p"
-  readonly property string preferredVideoSource: adaptivePreferred && !usingProgressiveFallback && adaptiveVideoSource !== ""
-    ? adaptiveVideoSource
-    : progressiveVideoSource
+  // QtMultimedia's HLS path is unreliable across repeated multi-output cold
+  // starts and deep seeks. Prefer the self-contained progressive candidate for
+  // desktop playback; adaptive remains a last resort when no stable candidate
+  // exists.
+  readonly property string preferredVideoSource: progressiveVideoSource !== ""
+    ? progressiveVideoSource
+    : adaptiveVideoSource
   readonly property bool backgroundSurfaceDesired: desiredBackgroundVideo && service && service.playing === true
   readonly property bool backgroundVisible: backgroundSurfaceDesired && String(highResVideoSource) !== ""
   readonly property bool backgroundPlaying: backgroundSurfaceDesired && activeSource !== "" && service.paused !== true

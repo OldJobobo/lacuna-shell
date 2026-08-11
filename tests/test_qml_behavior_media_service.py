@@ -22,10 +22,62 @@ class MediaPresentationOrderingContractTests(unittest.TestCase):
         toggle = service[service.index("function togglePause()") : service.index("function setPresentationMode(")]
         self.assertIn("if (hasTrack) playNormalized(currentTrack, false)", toggle)
         self.assertNotIn("if (hasTrack) startMpv(currentTrack)", toggle)
+        self.assertIn('if (backgroundStreamUrl === "" && !resolvingBackground) resolveBackground(currentTrack)', reconcile)
+        self.assertIn('pendingHandoffSurface === "background"', reconcile)
+        stop_body = service[service.index("function stop(resetPresentationMode)") : service.index("function startMpv(")]
+        self.assertIn('if (shouldResetPresentation) presentationMode = "inline"', stop_body)
+        self.assertIn("Component.onDestruction: stop(false)", service)
 
 
 @unittest.skipUnless(HAVE_SESSION, "needs a quickshell binary and a Wayland session")
 class QmlMediaPlayerV1ServiceBehaviorTests(unittest.TestCase):
+    def test_renderer_clock_waits_for_mpv_to_advance(self):
+        source_owner, source = make_media_player_source("{}")
+        with source_owner, tempfile.TemporaryDirectory() as cfg:
+            qml = f"""
+import Quickshell
+import QtQuick
+ShellRoot {{
+  property var svc: null
+  Component.onCompleted: {{
+    var component = Qt.createComponent("{qml_url('lacuna.media-player/Service.qml')}", Component.PreferSynchronous)
+    svc = component.createObject(this, {{ manifest: {{ __sourceDir: "{source}" }} }})
+    probe.start()
+  }}
+  Timer {{
+    id: probe
+    interval: 20
+    repeat: true
+    onTriggered: {{
+      if (!svc || !svc.stateLoaded) return
+      stop()
+      svc.playbackSessionRevision = 5
+      svc.playing = true
+      svc.paused = false
+      svc.workerPlayRecoveryPending = false
+      svc.playbackClockReady = false
+      svc.playbackClockStartPosition = 0
+      svc.playbackPosition = 0
+      svc.handleWorkerPlayback({{ revision:5, running:true, playing:true, paused:false, position:0, sampledAtMs:Date.now() }})
+      svc.smoothPlaybackClock()
+      var heldPosition = svc.playbackPosition
+      var heldReady = svc.playbackClockReady
+      svc.handleWorkerPlayback({{ revision:5, running:true, playing:true, paused:false, position:0.2, sampledAtMs:Date.now() }})
+      console.log("BEHAVE " + JSON.stringify({{ heldPosition:heldPosition, heldReady:heldReady,
+        releasedPosition:svc.playbackPosition, releasedReady:svc.playbackClockReady }}))
+      Qt.quit()
+    }}
+  }}
+}}
+"""
+            output = run_quickshell(qml, config_home=Path(cfg), timeout=8)
+        require_no_qml_errors(output)
+        row = parse_behave(output)[-1]
+        self.assertEqual(row["heldPosition"], 0)
+        self.assertFalse(row["heldReady"])
+        self.assertGreaterEqual(row["releasedPosition"], 0.2)
+        self.assertTrue(row["releasedReady"])
+
     def test_service_consumes_progressive_worker_events(self):
         source_owner, source = make_media_player_source("{}")
         worker = source / "scripts" / "media-player-worker"

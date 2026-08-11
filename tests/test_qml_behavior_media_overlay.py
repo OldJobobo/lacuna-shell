@@ -370,7 +370,7 @@ ShellRoot {{
         output = run_quickshell(qml, timeout=8)
         require_no_qml_errors(output)
         final = parse_behave(output)[-1]
-        self.assertEqual(final["adaptive"], "https://example.test/video-720.m3u8")
+        self.assertEqual(final["adaptive"], "https://example.test/video-360.mp4")
         self.assertEqual(final["fallback"], "https://example.test/video-360.mp4")
         self.assertEqual(final["retainedDuringResolve"], "https://example.test/previous.mp4")
         self.assertTrue(final["heldDuringDemotion"])

@@ -41,6 +41,12 @@ Item {
   property real playbackSamplePosition: 0
   property double playbackSampledAtMs: 0
   property bool playbackSamplePaused: false
+  // QML renderers must not chase mpv's repeated zero-position samples while a
+  // remote stream is still opening. The clock becomes authoritative only once
+  // mpv has actually advanced beyond the requested start.
+  property bool playbackClockReady: false
+  property real playbackClockStartPosition: 0
+  property real playbackClockLastObservedPosition: 0
   // Bumped whenever playback is (re)started, stopped, or failed, so probe
   // results issued against a previous mpv instance are discarded.
   property int playbackSessionRevision: 0
@@ -1146,7 +1152,9 @@ Item {
   function preferredVideoUrl(adaptiveUrl, progressiveUrl) {
     var adaptive = String(adaptiveUrl || "")
     var progressive = String(progressiveUrl || "")
-    if (videoQuality === "adaptive" && adaptive !== "") return adaptive
+    // Both QML renderers use the stable self-contained stream. The HLS path
+    // can report Playing while presenting a frozen frame and repeatedly misses
+    // the five-second handoff deadline on this QtMultimedia backend.
     return progressive !== "" ? progressive : adaptive
   }
 
@@ -1638,11 +1646,12 @@ Item {
 
     if (desiredBackgroundVideo) {
       if (presentationState === "background" && backgroundSurfaceReady) {
-        beginPresentationIntent("presented")
         pendingHandoffSurface = ""
         backgroundVideoEnabled = true
         return
       }
+      if (pendingHandoffSurface === "background"
+          && (presentationState === "promoting" || presentationState === "recovering")) return
       beginPresentationIntent(backgroundStreamUrl === "" ? "resolving" : "source-ready")
       // Publish the destination before presentationState changes. Surface
       // bindings can report loading synchronously from that state change.
@@ -1650,11 +1659,12 @@ Item {
       presentationState = "promoting"
       backgroundSurfaceReady = false
       backgroundVideoEnabled = true
-      resolveBackground(currentTrack)
+      if (backgroundStreamUrl === "" && !resolvingBackground) resolveBackground(currentTrack)
       return
     }
 
     if (presentationState === "background" || presentationState === "promoting" || backgroundVideoEnabled) {
+      if (pendingHandoffSurface === "inline" && presentationState === "demoting" && inlineSurfaceAvailable) return
       beginPresentationIntent("exiting")
       if (!inlineSurfaceAvailable) {
         // Forced inline mode with no visible inline renderer must still remove
@@ -1675,6 +1685,10 @@ Item {
       return
     }
 
+    if (presentationState === "inline" && !backgroundVideoEnabled) {
+      pendingHandoffSurface = ""
+      return
+    }
     beginPresentationIntent("presented")
     pendingHandoffSurface = ""
     presentationState = "inline"
@@ -1902,7 +1916,8 @@ Item {
     setVolume(volume + Number(delta || 0))
   }
 
-  function stop() {
+  function stop(resetPresentationMode) {
+    var shouldResetPresentation = resetPresentationMode !== false
     var cancelledVideoRequest = activeVideoResolveRevision
     if (workerOperational && cancelledVideoRequest >= 0)
       postWorker({ type: "cancel", requestId: cancelledVideoRequest })
@@ -1928,6 +1943,7 @@ Item {
     backgroundEnableFallback.stop()
     presentationReconcileTimer.stop()
     presentationRecoveryTimer.stop()
+    if (shouldResetPresentation) presentationMode = "inline"
     backgroundVideoEnabled = false
     backgroundSurfaceReady = false
     presentationFallbackInline = false
@@ -1959,6 +1975,9 @@ Item {
     playbackSamplePosition = 0
     playbackSampledAtMs = 0
     playbackSamplePaused = false
+    playbackClockReady = false
+    playbackClockStartPosition = 0
+    playbackClockLastObservedPosition = 0
     playbackStartedAtMs = 0
     playbackProbeFailures = 0
     playbackEndHandled = false
@@ -1992,6 +2011,9 @@ Item {
       playbackPosition = queuedPosition
       playbackSamplePosition = queuedPosition
       playbackSampledAtMs = Date.now()
+      playbackClockReady = false
+      playbackClockStartPosition = queuedPosition
+      playbackClockLastObservedPosition = queuedPosition
       playbackDuration = 0
       playbackEndHandled = false
       workerPlayPending = true
@@ -2033,6 +2055,9 @@ Item {
     playbackPosition = startPosition
     playbackSamplePosition = startPosition
     playbackSampledAtMs = Date.now()
+    playbackClockReady = false
+    playbackClockStartPosition = startPosition
+    playbackClockLastObservedPosition = startPosition
     playbackSamplePaused = false
     playbackDuration = 0
     playbackEndHandled = false
@@ -2089,6 +2114,9 @@ Item {
     playing = true
     paused = false
     playbackPosition = Math.max(0, Number(startAt) || 0)
+    playbackClockReady = false
+    playbackClockStartPosition = playbackPosition
+    playbackClockLastObservedPosition = playbackPosition
     playbackDuration = 0
     playbackEndHandled = false
     playbackSessionRevision += 1
@@ -2169,6 +2197,14 @@ Item {
     if (workerPlayRecoveryPending && currentTrack) workerPlayRecoveryTimer.restart()
   }
 
+  function observePlaybackClock(position) {
+    var value = Math.max(0, Number(position) || 0)
+    playbackClockLastObservedPosition = value
+    if (!playbackClockReady && value >= playbackClockStartPosition + 0.05)
+      playbackClockReady = true
+    return playbackClockReady
+  }
+
   function handleWorkerPlayback(payload) {
     var revision = payload.revision === undefined ? playbackSessionRevision : Number(payload.revision)
     if (revision !== playbackSessionRevision) return
@@ -2196,11 +2232,14 @@ Item {
     var position = Number(payload.position !== undefined ? payload.position : payload.timePos)
     if (isFinite(position) && position >= 0) {
       workerPlayRecoveryPending = false
+      var clockReady = observePlaybackClock(position)
       playbackSamplePosition = position
       var sampledAt = Number(payload.sampledAtMs)
       playbackSampledAtMs = isFinite(sampledAt) && Math.abs(Date.now() - sampledAt) < 5000 ? sampledAt : Date.now()
-      playbackPosition = position + (payload.paused === true ? 0 : Math.max(0, Date.now() - playbackSampledAtMs) / 1000)
-      prefetchNextBackground()
+      playbackPosition = clockReady
+        ? position + (payload.paused === true ? 0 : Math.max(0, Date.now() - playbackSampledAtMs) / 1000)
+        : playbackClockStartPosition
+      if (clockReady) prefetchNextBackground()
     }
     if (payload.paused !== undefined) paused = payload.paused === true
     playbackSamplePaused = paused
@@ -2297,7 +2336,7 @@ Item {
   }
 
   function smoothPlaybackClock() {
-    if (!playing || paused || playbackSampledAtMs <= 0) return
+    if (!playing || paused || !playbackClockReady || playbackSampledAtMs <= 0) return
     var elapsed = Math.max(0, Date.now() - playbackSampledAtMs) / 1000
     var next = playbackSamplePosition + elapsed
     if (playbackDuration > 0) next = Math.min(next, playbackDuration)
@@ -2311,7 +2350,7 @@ Item {
     secureStateFile()
     workerStartTimer.start()
   }
-  Component.onDestruction: stop()
+  Component.onDestruction: stop(false)
 
   onQueueChanged: scheduleStateSave()
   onHistoryChanged: scheduleStateSave()
@@ -2988,8 +3027,12 @@ Item {
 
         var value = Number(payload.timePos)
         if (isFinite(value) && value >= 0) {
-          root.playbackPosition = value
-          root.prefetchNextBackground()
+          if (root.observePlaybackClock(value)) {
+            root.playbackPosition = value
+            root.prefetchNextBackground()
+          } else {
+            root.playbackPosition = root.playbackClockStartPosition
+          }
           if (root.pendingBackgroundEnable) {
             root.pendingBackgroundEnable = false
             backgroundEnableFallback.stop()
@@ -3176,6 +3219,8 @@ Item {
         paused: root.paused,
         playbackPosition: root.playbackPosition,
         playbackDuration: root.playbackDuration,
+        playbackClockReady: root.playbackClockReady,
+        playbackClockStartPosition: root.playbackClockStartPosition,
         playbackEndHandled: root.playbackEndHandled,
         previewReady: root.previewStreamUrl !== "",
         previewResolving: root.resolvingPreview,

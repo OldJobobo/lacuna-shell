@@ -56,6 +56,8 @@ Item {
   readonly property bool available: service && service.available === true
   readonly property bool hasTrack: service && service.hasTrack === true
   readonly property bool playbackLoaded: service && service.playing === true
+  readonly property bool playbackClockReady: service && service.playbackClockReady !== undefined
+    ? service.playbackClockReady === true : true
   readonly property bool hasPresentationState: service && service.presentationState !== undefined
   readonly property string presentationState: hasPresentationState ? String(service.presentationState) : ""
   readonly property bool presentationTransitioning: presentationState === "promoting"
@@ -85,7 +87,7 @@ Item {
     && service.lacunaSettings.reduceMotion === true
   readonly property bool previewActive: previewUrl !== ""
   readonly property bool previewVideoActive: previewActive && !previewSuppressed
-  readonly property bool previewRendererActive: playbackLoaded && previewVideoActive
+  readonly property bool previewRendererActive: playbackLoaded && playbackClockReady && previewVideoActive
   readonly property string desiredPreviewSource: previewRendererActive && localPreviewVisible ? previewUrl : ""
   readonly property bool previewSourceLoaded: previewPlayer !== null && String(previewPlayer.source || "") !== ""
   readonly property real playbackPosition: service && service.playbackPosition !== undefined ? Math.max(0, Number(service.playbackPosition) || 0) : 0

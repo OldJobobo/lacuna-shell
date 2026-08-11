@@ -3916,7 +3916,8 @@ class QmlContractTests(unittest.TestCase):
         # suppresses after repeated failed corrections.
         self.assertIn("if (localPreviewVisible) previewSuppressed = false", tile)
         self.assertIn('readonly property string desiredPreviewSource: previewRendererActive && localPreviewVisible ? previewUrl : ""', tile)
-        self.assertIn("readonly property bool previewRendererActive: playbackLoaded && previewVideoActive", tile)
+        self.assertIn("readonly property bool playbackClockReady", tile)
+        self.assertIn("readonly property bool previewRendererActive: playbackLoaded && playbackClockReady && previewVideoActive", tile)
         self.assertIn("function syncPreviewSource()", tile)
         self.assertIn('service.reportVideoLoading("inline", activePreviewHandoffToken', tile)
         self.assertIn("id: previewPlayerLoader", tile)

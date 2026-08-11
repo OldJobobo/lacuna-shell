@@ -40,10 +40,16 @@ suggestions and playback, avoiding cookie startup cost on every cold query.
 
 The worker samples mpv over its persistent IPC connection. The service
 interpolates the latest sample every 100ms while playing. Stop clears signed
-renderer URLs; replay therefore follows the same `playNormalized()` transaction
+renderer URLs and resets presentation to inline, so it also turns background
+video off. Replay therefore follows the same `playNormalized()` transaction
 as a fresh play—new playback revision, candidate resolution, and presentation
 reconciliation—rather than restarting audio alone. Muted QML surfaces
-use this clock with three correction bands:
+use this clock with three correction bands. On cold remote startup, renderers
+remain on the thumbnail until mpv advances at least 50ms beyond the requested
+start; repeated zero-position samples during provider buffering therefore
+cannot make the inline player seek back to the beginning and visibly restart.
+
+The correction bands are:
 
 - below 400ms: play at normal rate;
 - 400ms through 1500ms: correct at `0.97` or `1.03` playback rate;
@@ -112,9 +118,10 @@ the whole background presentation falls back cleanly rather than leaving a
 partial or indefinitely black desktop. `stop()` is available over IPC so gated
 live probes can always restore a zero-player stopped state.
 
-Adaptive quality prefers a 720p-capable HLS candidate. A stable progressive
-360p candidate is retained for readiness timeout, playback error, or repeated
-drift failure. Inline and background QtMultimedia players are recreated for
+Both muted QML renderers prefer the stable progressive candidate because
+QtMultimedia's HLS path proved unreliable across repeated cold starts, seeks,
+and visibility handoffs. Adaptive HLS remains a last resort when no progressive
+candidate exists. Inline and background QtMultimedia players are recreated for
 each source revision; signal handlers additionally verify the instance and
 source generation, so queued events from a destroyed adaptive player cannot be
 reported with a newer progressive token.
