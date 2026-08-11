@@ -77,7 +77,12 @@ input, and reserve no exclusive zone.
 The exact bar/frame order is
 host-controlled; verify that `LacunaFrameWindow.qml` still excludes the bar
 strip. Frame surfaces appear even when their paint is inactive and are
-intentionally always mapped (rule 2). Portrait companion surfaces exist only
+intentionally always mapped (rule 2). The Lacuna installer also owns
+`~/.local/state/omarchy/toggles/hypr/zz-lacuna-layer-animation.lua`, which
+matches both possible full-frame border owners (`lacuna-bar-frame` and the
+hosted `lacuna.menu-menu-*` surface) with `no_anim = true`. This keeps theme
+layer animations from translating persistent frame chrome while leaving the
+sidebar and flyout's in-window QML animations intact. Portrait companion surfaces exist only
 where the split is effective. On a portrait split output, verify that the
 companion edge is owned by its bar-sized exclusive zone rather than the frame
 reserve.
@@ -125,6 +130,10 @@ Mapped shells and heavyweight content share explicit resource lifecycles:
   size and lets the scene graph scale the cached texture. Autohide adds no
   namespace or layer level, and fullscreen clears the hot-zone input region on
   the affected output.
+- The frame animation override is installed transactionally when `lacuna.bar`
+  is activated, restored if activation fails, and removed with Lacuna-owned
+  Hyprland overrides during core/full uninstall. It is deliberately separate
+  from user dotfiles and theme files.
 - Shared status followers such as Voxtype belong to one shell service, not to
   each monitor-local widget instance.
 

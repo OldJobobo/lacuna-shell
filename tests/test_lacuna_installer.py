@@ -429,7 +429,11 @@ with module.installer_transaction_lock():
             hypr_dir.mkdir(parents=True)
             canonical_service = (ROOT / "lacuna.shell-settings/Service.qml").read_text(encoding="utf-8")
             service_owned_names = set(re.findall(r'/((?:zz-lacuna-)[^"]+\.lua)"', canonical_service))
-            self.assertEqual(set(module.LACUNA_HYPR_OVERRIDE_FILENAMES), service_owned_names)
+            installer_owned_names = set(module.LACUNA_HYPR_OVERRIDE_FILENAMES) - {
+                module.LACUNA_FRAME_ANIMATION_OVERRIDE_FILENAME
+            }
+            self.assertEqual(installer_owned_names, service_owned_names)
+            self.assertTrue(module.lacuna_frame_animation_override_source().is_file())
 
             owned = [hypr_dir / name for name in module.LACUNA_HYPR_OVERRIDE_FILENAMES]
             for path in owned:
@@ -762,6 +766,16 @@ with module.installer_transaction_lock():
             self.assertEqual(shell_json.read_text(encoding="utf-8"), original_shell)
             self.assertEqual(settings_json.read_text(encoding="utf-8"), original_settings)
 
+    def test_atomic_json_write_keeps_new_runtime_state_private(self):
+        module = load_installer_module()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "state.json"
+            module.atomic_write_json(target, {"secret": True})
+            mode = target.stat().st_mode & 0o7777
+
+        self.assertEqual(mode, 0o600)
+
     def test_runtime_state_snapshot_preserves_shell_and_lacuna_settings(self):
         module = load_installer_module()
 
@@ -944,7 +958,13 @@ with module.installer_transaction_lock():
             )
             plugins = module.load_plugins()
 
-            with mock.patch.dict(module.os.environ, {"XDG_CONFIG_HOME": str(config_home), "LACUNA_OMARCHY_CONFIG_HOME": str(config_home)}), \
+            home = Path(tmp) / "home"
+            env = {
+                "HOME": str(home),
+                "XDG_CONFIG_HOME": str(config_home),
+                "LACUNA_OMARCHY_CONFIG_HOME": str(config_home),
+            }
+            with mock.patch.dict(module.os.environ, env), \
                 mock.patch.object(module, "run_command", return_value=0) as run_command:
                 result = module.activate_plugins(
                     ["lacuna.bar", "lacuna.state"],
@@ -955,13 +975,104 @@ with module.installer_transaction_lock():
                 )
 
             data = __import__("json").loads(shell_json.read_text(encoding="utf-8"))
+            override = home / ".local/state/omarchy/toggles/hypr/zz-lacuna-layer-animation.lua"
+            override_text = override.read_text(encoding="utf-8")
 
         self.assertEqual(result, 0)
-        self.assertEqual(run_command.call_count, 1)
-        self.assertEqual(run_command.call_args.args[0], ["omarchy", "restart", "shell"])
+        self.assertEqual(run_command.call_count, 2)
+        self.assertEqual(
+            [item.args[0] for item in run_command.call_args_list],
+            [["hyprctl", "reload"], ["omarchy", "restart", "shell"]],
+        )
+        self.assertIn("lacuna-bar-frame", override_text)
+        self.assertIn("lacuna[.]menu-menu-.*", override_text)
         self.assertEqual(data["bar"]["id"], "lacuna.bar")
         self.assertEqual(data["plugins"], [{"id": "lacuna.state"}])
         self.assertEqual(data["bar"]["layout"]["right"], [])
+
+    def test_failed_bar_activation_restores_previous_frame_animation_override(self):
+        module = load_installer_module()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            config_home = Path(tmp) / "config"
+            shell_json = config_home / "omarchy" / "shell.json"
+            shell_json.parent.mkdir(parents=True)
+            original_shell = '{"version":1,"bar":{"layout":{"left":[],"center":[],"right":[]}},"plugins":[]}\n'
+            shell_json.write_text(original_shell, encoding="utf-8")
+            override = home / ".local/state/omarchy/toggles/hypr/zz-lacuna-layer-animation.lua"
+            override.parent.mkdir(parents=True)
+            original_override = b"-- previous Lacuna override\n"
+            override.write_bytes(original_override)
+            plugins = module.load_plugins()
+            env = {
+                "HOME": str(home),
+                "XDG_CONFIG_HOME": str(config_home),
+                "LACUNA_OMARCHY_CONFIG_HOME": str(config_home),
+            }
+            with mock.patch.dict(module.os.environ, env), \
+                mock.patch.object(module, "run_command", side_effect=[0, 9, 0, 0]) as run_command:
+                result = module.activate_plugins(
+                    ["lacuna.bar", "lacuna.state"],
+                    plugins,
+                    {"lacuna.bar", "lacuna.state"},
+                    False,
+                    False,
+                )
+
+            restored_shell = shell_json.read_text(encoding="utf-8")
+            restored_override = override.read_bytes()
+
+        self.assertEqual(result, 9)
+        self.assertEqual(restored_shell, original_shell)
+        self.assertEqual(restored_override, original_override)
+        self.assertEqual(
+            [item.args[0] for item in run_command.call_args_list],
+            [
+                ["hyprctl", "reload"],
+                ["omarchy", "restart", "shell"],
+                ["hyprctl", "reload"],
+                ["omarchy", "restart", "shell"],
+            ],
+        )
+
+    def test_bar_activation_refuses_override_directory_without_mutation(self):
+        module = load_installer_module()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            config_home = Path(tmp) / "config"
+            shell_json = config_home / "omarchy" / "shell.json"
+            shell_json.parent.mkdir(parents=True)
+            original_shell = b'{"version":1,"bar":{"layout":{"left":[],"center":[],"right":[]}},"plugins":[]}\n'
+            shell_json.write_bytes(original_shell)
+            override = home / ".local/state/omarchy/toggles/hypr/zz-lacuna-layer-animation.lua"
+            override.mkdir(parents=True)
+            marker = override / "user-data"
+            marker.write_text("keep\n", encoding="utf-8")
+            plugins = module.load_plugins()
+            env = {
+                "HOME": str(home),
+                "XDG_CONFIG_HOME": str(config_home),
+                "LACUNA_OMARCHY_CONFIG_HOME": str(config_home),
+            }
+            with mock.patch.dict(module.os.environ, env), \
+                mock.patch.object(module, "run_command") as run_command:
+                result = module.activate_plugins(
+                    ["lacuna.bar", "lacuna.state"],
+                    plugins,
+                    {"lacuna.bar", "lacuna.state"},
+                    False,
+                    False,
+                )
+
+            preserved_shell = shell_json.read_bytes()
+            preserved_marker = marker.read_text(encoding="utf-8")
+
+        self.assertEqual(result, 1)
+        self.assertEqual(preserved_shell, original_shell)
+        self.assertEqual(preserved_marker, "keep\n")
+        run_command.assert_not_called()
 
     def test_deactivating_lacuna_bar_restores_stock_omarchy_layout(self):
         module = load_installer_module()
@@ -1074,7 +1185,12 @@ with module.installer_transaction_lock():
             plugins = module.load_plugins()
             selected = {"lacuna.bar"} | module.LACUNA_BAR_LAYOUT_PLUGIN_IDS
 
-            with mock.patch.dict(module.os.environ, {"XDG_CONFIG_HOME": str(config_home), "LACUNA_OMARCHY_CONFIG_HOME": str(config_home)}), \
+            env = {
+                "HOME": str(Path(tmp) / "home"),
+                "XDG_CONFIG_HOME": str(config_home),
+                "LACUNA_OMARCHY_CONFIG_HOME": str(config_home),
+            }
+            with mock.patch.dict(module.os.environ, env), \
                 mock.patch.object(module, "installed_lacuna_plugins", return_value=[]), \
                 mock.patch.object(module, "run_command", return_value=0):
                 result = module.activate_plugins(
@@ -1571,6 +1687,62 @@ with module.installer_transaction_lock():
             self.assertEqual(failed["phase"], "failed")
             self.assertEqual(failed["exitCode"], 7)
             self.assertIn("omarchy plugin rescan", failed["recovery"])
+
+    def test_update_repairs_missing_frame_animation_override_for_installed_bar(self):
+        module = load_installer_module()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            config_home = Path(tmp) / "config"
+            installed_bar = config_home / "omarchy" / "plugins" / "lacuna.bar"
+            shutil.copytree(ROOT / "lacuna.bar", installed_bar)
+            args = module.argparse.Namespace(plugins=None, dry_run=False, yes=True)
+            env = {
+                "HOME": str(home),
+                "XDG_CONFIG_HOME": str(config_home),
+                "LACUNA_OMARCHY_CONFIG_HOME": str(config_home),
+            }
+            with mock.patch.dict(module.os.environ, env), \
+                mock.patch.object(module, "run_command", return_value=0) as run_command:
+                result = module.update(args)
+
+            override = home / ".local/state/omarchy/toggles/hypr/zz-lacuna-layer-animation.lua"
+            override_text = override.read_text(encoding="utf-8")
+
+        self.assertEqual(result, 0)
+        self.assertIn("lacuna-bar-frame", override_text)
+        self.assertEqual(
+            [item.args[0] for item in run_command.call_args_list],
+            [["hyprctl", "reload"]],
+        )
+
+    def test_update_refuses_override_directory_without_mutation(self):
+        module = load_installer_module()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            config_home = Path(tmp) / "config"
+            installed_bar = config_home / "omarchy" / "plugins" / "lacuna.bar"
+            shutil.copytree(ROOT / "lacuna.bar", installed_bar)
+            override = home / ".local/state/omarchy/toggles/hypr/zz-lacuna-layer-animation.lua"
+            override.mkdir(parents=True)
+            marker = override / "user-data"
+            marker.write_text("keep\n", encoding="utf-8")
+            args = module.argparse.Namespace(plugins=None, dry_run=False, yes=True)
+            env = {
+                "HOME": str(home),
+                "XDG_CONFIG_HOME": str(config_home),
+                "LACUNA_OMARCHY_CONFIG_HOME": str(config_home),
+            }
+            with mock.patch.dict(module.os.environ, env), \
+                mock.patch.object(module, "run_command") as run_command:
+                result = module.update(args)
+
+            preserved_marker = marker.read_text(encoding="utf-8")
+
+        self.assertEqual(result, 1)
+        self.assertEqual(preserved_marker, "keep\n")
+        run_command.assert_not_called()
 
     def test_update_dry_run_lists_only_changed_installed_plugins(self):
         with tempfile.TemporaryDirectory() as tmp:

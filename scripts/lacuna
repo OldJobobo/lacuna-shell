@@ -55,7 +55,9 @@ RESET_PRESERVED_SETTINGS_KEYS = [
 ]
 BACKUPS_TO_KEEP = 2
 RUNTIME_BACKUPS_TO_KEEP = 8
+LACUNA_FRAME_ANIMATION_OVERRIDE_FILENAME = "zz-lacuna-layer-animation.lua"
 LACUNA_HYPR_OVERRIDE_FILENAMES = (
+    LACUNA_FRAME_ANIMATION_OVERRIDE_FILENAME,
     "zz-lacuna-window-gaps.lua",
     "zz-lacuna-window-no-gaps.lua",
     "zz-lacuna-window-rounded.lua",
@@ -270,6 +272,14 @@ def lacuna_state_dir() -> Path:
 def lacuna_hypr_override_paths() -> list[Path]:
     toggle_dir = Path.home() / ".local" / "state" / "omarchy" / "toggles" / "hypr"
     return [toggle_dir / name for name in LACUNA_HYPR_OVERRIDE_FILENAMES]
+
+
+def lacuna_frame_animation_override_path() -> Path:
+    return Path.home() / ".local" / "state" / "omarchy" / "toggles" / "hypr" / LACUNA_FRAME_ANIMATION_OVERRIDE_FILENAME
+
+
+def lacuna_frame_animation_override_source() -> Path:
+    return ROOT / "config" / "hypr" / LACUNA_FRAME_ANIMATION_OVERRIDE_FILENAME
 
 
 def load_plugins() -> dict[str, Plugin]:
@@ -798,15 +808,13 @@ def ensure_shell_config_shape(config: dict) -> dict:
     return config
 
 
-def atomic_write_json(path: Path, config: dict) -> None:
+def atomic_write_bytes(path: Path, payload: bytes, mode: int | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(config, indent=2) + "\n"
     existing_mode = (path.stat().st_mode & 0o7777) if path.is_file() else None
     temporary: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
+            mode="wb",
             dir=path.parent,
             prefix=f".{path.name}.tmp.",
             delete=False,
@@ -815,13 +823,47 @@ def atomic_write_json(path: Path, config: dict) -> None:
             stream.write(payload)
             stream.flush()
             os.fsync(stream.fileno())
-        if existing_mode is not None:
-            temporary.chmod(existing_mode)
+        temporary.chmod(existing_mode if existing_mode is not None else (mode if mode is not None else 0o644))
         os.replace(temporary, path)
         temporary = None
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)
+
+
+def atomic_write_json(path: Path, config: dict) -> None:
+    payload = (json.dumps(config, indent=2) + "\n").encode("utf-8")
+    atomic_write_bytes(path, payload, mode=0o600)
+
+
+def validate_lacuna_frame_animation_override_path() -> bool:
+    target = lacuna_frame_animation_override_path()
+    if target.exists() and not target.is_file() and not target.is_symlink():
+        print(f"Refusing non-file frame animation override path: {target}", file=sys.stderr)
+        return False
+    return True
+
+
+def lacuna_frame_animation_override_needs_update() -> bool:
+    source = lacuna_frame_animation_override_source()
+    target = lacuna_frame_animation_override_path()
+    if not target.is_file() or target.is_symlink():
+        return True
+    return target.read_bytes() != source.read_bytes()
+
+
+def install_lacuna_frame_animation_override(dry_run: bool) -> bool:
+    source = lacuna_frame_animation_override_source()
+    target = lacuna_frame_animation_override_path()
+    print(f"  install Lacuna frame animation override -> {target}", flush=True)
+    if dry_run:
+        return True
+    if not validate_lacuna_frame_animation_override_path():
+        raise IsADirectoryError(f"refusing to replace non-file override path: {target}")
+    if not lacuna_frame_animation_override_needs_update():
+        return False
+    atomic_write_bytes(target, source.read_bytes(), mode=0o644)
+    return True
 
 
 def write_shell_config(config: dict) -> None:
@@ -888,6 +930,14 @@ def restore_path_state(path: Path, state: dict[str, object]) -> None:
         mode = state.get("mode")
         if isinstance(mode, int):
             path.chmod(mode)
+
+
+def restore_owned_file_state(path: Path, state: dict[str, object]) -> bool:
+    if path.exists() and not path.is_file() and not path.is_symlink():
+        print(f"Refusing to remove non-file managed path during rollback: {path}", file=sys.stderr)
+        return False
+    restore_path_state(path, state)
+    return True
 
 
 def path_matches_state(path: Path, state: dict[str, object]) -> bool:
@@ -1180,15 +1230,30 @@ def activate_plugins(
 ) -> int:
     if not ids:
         return 0
+    frame_override_active = "lacuna.bar" in selected
+    if frame_override_active and not dry_run and not validate_lacuna_frame_animation_override_path():
+        return 1
     if dry_run:
         print(f"  update {shell_config_path()} once")
-        if "lacuna.bar" in selected:
+        if frame_override_active:
             print("  apply Lacuna bar host layout in shell.json")
+            install_lacuna_frame_animation_override(dry_run=True)
+            print("  hyprctl reload")
         print(f"  {activation_reload_label(selected)}")
         return 0
 
     shell_path = shell_config_path()
     shell_state = capture_path_state(shell_path)
+    frame_override_path = lacuna_frame_animation_override_path()
+    frame_override_state = capture_path_state(frame_override_path) if frame_override_active else None
+
+    def rollback_activation() -> None:
+        restore_path_state(shell_path, shell_state)
+        if frame_override_state is not None:
+            restore_owned_file_state(frame_override_path, frame_override_state)
+            run_reload_command(["hyprctl", "reload"], dry_run=False)
+        reload_after_rollback(selected)
+
     try:
         config = ensure_shell_config_shape(read_shell_config())
         if omakase_profile is not None:
@@ -1205,15 +1270,22 @@ def activate_plugins(
                 apply_layout_to_config(config, selected)
         write_shell_config(config)
         print(f"  updated {shell_config_path()}", flush=True)
+        if frame_override_active:
+            override_changed = install_lacuna_frame_animation_override(dry_run=False)
+            if override_changed:
+                code = run_reload_command(["hyprctl", "reload"], dry_run=False)
+                if code != 0:
+                    print("  Hyprland reload failed; restoring the previous override and shell.json", flush=True)
+                    rollback_activation()
+                    return code
         code = run_reload_command(activation_reload_command(selected), dry_run)
         if code == 0:
             return 0
-        print("  activation reload failed; restoring the previous shell.json", flush=True)
-        restore_path_state(shell_path, shell_state)
-        reload_after_rollback(selected)
+        print("  activation reload failed; restoring the previous override and shell.json", flush=True)
+        rollback_activation()
         return code
     except (OSError, ValueError, SystemExit) as error:
-        restore_path_state(shell_path, shell_state)
+        rollback_activation()
         print(f"Failed to activate Lacuna plugins: {error}", file=sys.stderr)
         return 1
 
@@ -1258,6 +1330,8 @@ def activation_commands(ids: list[str], apply_layout_choice: bool = False) -> li
         commands.append(f"update {shell_config_path()} once")
         if "lacuna.bar" in ids:
             commands.append("apply Lacuna bar host layout in shell.json")
+            commands.append(f"install Lacuna frame animation override -> {lacuna_frame_animation_override_path()}")
+            commands.append("hyprctl reload")
         if apply_layout_choice:
             commands.append("apply Lacuna bar layout in shell.json")
         commands.append(activation_reload_label(set(ids)))
@@ -1879,6 +1953,7 @@ def update(args: argparse.Namespace) -> int:
     plugins = load_plugins()
     ids = resolve_update_selection(args, plugins)
     update_ids = [plugin_id for plugin_id in ids if plugin_source_differs(plugin_id)]
+    frame_override_update = "lacuna.bar" in ids and lacuna_frame_animation_override_needs_update()
 
     print_plan("Update plan", update_ids, plugins)
     if ids and len(update_ids) != len(ids):
@@ -1891,16 +1966,21 @@ def update(args: argparse.Namespace) -> int:
         print_stage_commands(commands)
     else:
         print("  No plugin copy commands needed.")
+    if frame_override_update:
+        print(f"  install Lacuna frame animation override -> {lacuna_frame_animation_override_path()}")
+        print("  hyprctl reload")
 
     if args.dry_run:
         return 0
-    if not update_ids:
+    if not update_ids and not frame_override_update:
         print("\nNo installed Lacuna plugins need updates.")
         for plugin_id in ids:
             prune_backups(plugin_id)
         return 0
-    if not confirm("Update changed Lacuna plugins?", args.yes):
+    if not confirm("Update changed Lacuna files?", args.yes):
         print("Update cancelled.")
+        return 1
+    if frame_override_update and not validate_lacuna_frame_animation_override_path():
         return 1
     preserve_runtime_state()
     for plugin_id in ids:
@@ -1909,7 +1989,26 @@ def update(args: argparse.Namespace) -> int:
     code = stage_plugins(update_ids, args.dry_run, reinstall=True, rescan=True, changes=transaction)
     if code != 0:
         return code
-    return 0
+    if not frame_override_update:
+        return 0
+
+    override_path = lacuna_frame_animation_override_path()
+    override_state = capture_path_state(override_path)
+    try:
+        install_lacuna_frame_animation_override(dry_run=False)
+        code = run_reload_command(["hyprctl", "reload"], dry_run=False)
+    except OSError as error:
+        print(f"Failed to update Lacuna frame animation override: {error}", file=sys.stderr)
+        code = 1
+    if code == 0:
+        return 0
+
+    print("  frame override update failed; restoring previous Lacuna files", flush=True)
+    restore_owned_file_state(override_path, override_state)
+    run_reload_command(["hyprctl", "reload"], dry_run=False)
+    rollback_staged_changes(transaction)
+    reload_after_rollback(set(ids))
+    return code
 
 
 def missing_omakase_install_roots(profile: dict) -> list[str]:
