@@ -39,13 +39,11 @@ optional desktop ambience—all inside the Omarchy shell you already use.
 
 Lacuna's reviewed host pair is Omarchy `4.0.0.r1438.g9b693cc-1` with
 Quickshell `0.3.0.r18.g10b439f-3`. Nearby versions may work but are not
-promised; compare your host before installing or updating it. While the AUR is
-unavailable, install the verified package from the GitHub prerelease and open
-the guided installer:
+promised; compare your host before installing or updating it. Install from the
+AUR through Omarchy, then open the guided installer:
 
 ```bash
-curl -fLO https://github.com/OldJobobo/lacuna-shell/releases/download/v0.1.0-beta.5/lacuna-shell-0.1.0beta.5-1-any.pkg.tar.zst
-sudo pacman -U ./lacuna-shell-0.1.0beta.5-1-any.pkg.tar.zst
+omarchy pkg aur add lacuna-shell
 lacuna-shell
 ```
 
@@ -55,9 +53,6 @@ changing your shell:
 ```bash
 lacuna-shell install --dry-run
 ```
-
-This direct package path is temporary; use the normal AUR command again when
-the AUR is available.
 
 For the source-bootstrap alternative and complete safety notes, read
 [Installation](docs/getting-started/installation.md).

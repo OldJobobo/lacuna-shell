@@ -8,15 +8,7 @@ for your user.
 
 ## Install the package
 
-The AUR is temporarily unavailable. Install the verified package attached to
-the GitHub prerelease instead:
-
-```bash
-curl -fLO https://github.com/OldJobobo/lacuna-shell/releases/download/v0.1.0-beta.5/lacuna-shell-0.1.0beta.5-1-any.pkg.tar.zst
-sudo pacman -U ./lacuna-shell-0.1.0beta.5-1-any.pkg.tar.zst
-```
-
-When the AUR is available again, the normal command is:
+Install Lacuna from the AUR through Omarchy:
 
 ```bash
 omarchy pkg aur add lacuna-shell
@@ -33,9 +25,6 @@ what it will install and activate. It snapshots `shell.json` and Lacuna's
 `settings.json`, stages and verifies the plugin set, applies the curated layout,
 and reloads the shell.
 
-The temporary direct package and future AUR updates use the same
-`lacuna-shell` package identity, so pacman can upgrade it normally.
-
 ### Preview without changing the shell
 
 ```bash
@@ -47,8 +36,7 @@ before opening the guided interface.
 
 ## Install from the source bootstrap
 
-Use this when the AUR route is unavailable on your machine or you intentionally
-want a source-managed installation:
+Use this when you intentionally want a source-managed installation:
 
 ```bash
 ( f="$(mktemp)" && trap 'rm -f "$f"' EXIT && curl -fsSL https://raw.githubusercontent.com/OldJobobo/lacuna-shell/refs/heads/master/install.sh -o "$f" && bash "$f" )

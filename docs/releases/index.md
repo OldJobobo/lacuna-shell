@@ -11,8 +11,8 @@ release information alongside immutable artifacts.
 The current suite version is **0.1.0-beta.4**.
 
 Beta.4 adds active-workspace-only mode, sidebar autohide refinements, universal
-theme-aware frame and flyout corner geometry, the redesigned user documentation,
-and a verified direct Arch package for use while the AUR is unavailable.
+theme-aware frame and flyout corner geometry, and the redesigned user
+documentation.
 
 ## Before upgrading
 

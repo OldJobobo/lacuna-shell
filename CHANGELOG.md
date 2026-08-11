@@ -24,8 +24,6 @@ and the suite version lives in [`VERSION`](VERSION) and is mirrored into every
 ### Added
 - The Lacuna workspace widget can optionally show only the active workspace
   from Settings → Bar; the existing multi-workspace display remains the default.
-- GitHub prereleases now include a verified Arch package artifact for temporary
-  direct installation when the AUR is unavailable.
 
 ### Changed
 - Documentation now pairs its user-first content with a calm neutral shell,
