@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "reviewedOmarchyVersion": "4.0.0.r1438.g9b693cc-1",
   "reviewedOmarchyCommit": "9b693cca63d111fc3faba16aea149d226881b427",
+  "vendoredOmarchyCommit": "f0020448ca87329199de7cb12f2015ebc4a3e5e7",
   "reviewedQuickshellVersion": "0.3.0.r18.g10b439f-3",
   "upstreamFiles": {
     "Bar.qml": "d516e6393c8946955d08d71cb310751c832389d3a2636b9b2d3aacccf819be55",

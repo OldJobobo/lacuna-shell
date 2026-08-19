@@ -149,6 +149,7 @@ def report(repo_only: bool) -> dict:
         "barSourceRevision": omarchy_version if omarchy_version != "unknown" else "unknown",
         "reviewedOmarchyVersion": review.get("reviewedOmarchyVersion", "unknown"),
         "reviewedOmarchyCommit": review.get("reviewedOmarchyCommit", "unknown"),
+        "vendoredOmarchyCommit": review.get("vendoredOmarchyCommit", "unknown"),
         "reviewedQuickshellVersion": review.get("reviewedQuickshellVersion", "unknown"),
         "releaseTests": review.get("releaseTests", []),
         "upstreamBarFiles": upstream_files,

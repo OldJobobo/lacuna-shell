@@ -8,7 +8,7 @@ curated shell, then customize it after you have seen the intended layout.
 ## The short path
 
 1. Confirm your system meets the [requirements](requirements.md).
-2. Follow the [package installation](installation.md#install-from-the-aur).
+2. Follow the [package installation](installation.md#install-the-package).
 3. Choose **Full Lacuna install** in the guided installer.
 4. Let the Omarchy shell reload.
 5. Run `lacuna-shell status` and complete the [first-run tour](first-run.md).

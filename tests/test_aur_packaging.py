@@ -66,10 +66,12 @@ class AurPackagingTests(unittest.TestCase):
         self.assertIn("scripts/build-release-archive", release_workflow)
         self.assertIn("prerelease:", release_workflow)
         compatibility = json.loads((ROOT / "config/quattro-compatibility.json").read_text(encoding="utf-8"))
-        revision = compatibility["reviewedOmarchyCommit"]
-        self.assertRegex(revision, r"^[0-9a-f]{40}$")
-        self.assertIn(f"ref: {revision}", check_workflow)
-        self.assertIn(f"ref: {revision}", release_workflow)
+        reviewed_revision = compatibility["reviewedOmarchyCommit"]
+        vendored_revision = compatibility["vendoredOmarchyCommit"]
+        self.assertRegex(reviewed_revision, r"^[0-9a-f]{40}$")
+        self.assertRegex(vendored_revision, r"^[0-9a-f]{40}$")
+        self.assertIn(f"ref: {vendored_revision}", check_workflow)
+        self.assertIn(f"ref: {vendored_revision}", release_workflow)
 
     def test_package_rehearsal_reviews_qml_dependency_warnings(self):
         rehearsal = (ROOT / "scripts" / "rehearse-aur-package").read_text(encoding="utf-8")

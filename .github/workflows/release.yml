@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: basecamp/omarchy
-          ref: 9b693cca63d111fc3faba16aea149d226881b427
+          ref: f0020448ca87329199de7cb12f2015ebc4a3e5e7
           path: .ci/omarchy
       - name: Trust container-mounted checkouts
         run: |
