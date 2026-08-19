@@ -21,6 +21,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+PLUGIN_RESCAN_COMMAND = ["omarchy", "shell", "shell", "rescanPlugins"]
+PLUGIN_RESCAN_DISPLAY = " ".join(PLUGIN_RESCAN_COMMAND)
 DEFAULT_SOURCE = "lacuna"
 OFFICIAL_SOURCE_URL = "https://github.com/OldJobobo/lacuna-shell.git"
 LEGACY_PLUGIN = "lacuna.compact-pill"
@@ -739,7 +741,7 @@ def print_plan(title: str, ids: list[str], plugins: dict[str, Plugin]) -> None:
 def stage_commands(ids: list[str], rescan: bool = True) -> list[str]:
     commands = [f"stage {plugin_id} -> {plugins_dir() / plugin_id}" for plugin_id in ids]
     if ids and rescan:
-        commands.append("omarchy plugin rescan")
+        commands.append(PLUGIN_RESCAN_DISPLAY)
     return commands
 
 
@@ -1211,7 +1213,7 @@ def pin_bar_size_toggle_last(entries: list[dict]) -> None:
 def activation_reload_command(selected: set[str]) -> list[str]:
     if "lacuna.bar" in selected:
         return ["omarchy", "restart", "shell"]
-    return ["omarchy", "plugin", "rescan"]
+    return PLUGIN_RESCAN_COMMAND
 
 
 def activation_reload_label(selected: set[str]) -> str:
@@ -1317,7 +1319,7 @@ def deactivate_plugins(ids: list[str], dry_run: bool) -> int:
 def uninstall_reload_command(ids: list[str]) -> list[str]:
     if "lacuna.bar" in ids:
         return ["omarchy", "restart", "shell"]
-    return ["omarchy", "plugin", "rescan"]
+    return PLUGIN_RESCAN_COMMAND
 
 
 def uninstall_reload_label(ids: list[str]) -> str:
@@ -1554,7 +1556,7 @@ def stage_plugins(
             del transaction[start:]
             return code
     if ids and rescan:
-        code = run_command(["omarchy", "plugin", "rescan"], dry_run)
+        code = run_command(PLUGIN_RESCAN_COMMAND, dry_run)
         if code != 0:
             print("  plugin rescan failed; restoring the previous staged copies", flush=True)
             rollback_staged_changes(transaction[start:])
@@ -2139,7 +2141,7 @@ def write_installer_status(operation: str, phase: str, exit_code: int | None = N
         "phase": phase,
         "exitCode": exit_code,
         "updatedAt": datetime.now(timezone.utc).isoformat(),
-        "recovery": "lacuna-shell status; omarchy plugin rescan; omarchy restart shell",
+        "recovery": f"lacuna-shell status; {PLUGIN_RESCAN_DISPLAY}; omarchy restart shell",
     }
     temporary: Path | None = None
     try:
@@ -2169,6 +2171,15 @@ def read_optional_json(path: Path) -> tuple[dict | None, str]:
     except (OSError, json.JSONDecodeError):
         return None, "invalid"
     return (value, "healthy") if isinstance(value, dict) else (None, "invalid")
+
+
+def recovery_instructions(value: object) -> str:
+    fallback = f"{PLUGIN_RESCAN_DISPLAY}; omarchy restart shell"
+    if not isinstance(value, str) or not value:
+        return fallback
+    return value.replace(
+        "omarchy shell -q shell rescanPlugins", PLUGIN_RESCAN_DISPLAY
+    ).replace("omarchy plugin rescan", PLUGIN_RESCAN_DISPLAY)
 
 
 def status(_args: argparse.Namespace) -> int:
@@ -2208,10 +2219,10 @@ def status(_args: argparse.Namespace) -> int:
     print(f"  Sidebar monitor policy: {policy} ({', '.join(map(str, names)) if names else 'no pinned outputs'})")
     if operation_health == "healthy" and operation:
         print(f"  Last installer operation: {operation.get('operation', 'unknown')} / {operation.get('phase', 'unknown')} / exit {operation.get('exitCode')}")
-        print(f"  Recovery: {operation.get('recovery', 'omarchy plugin rescan; omarchy restart shell')}")
+        print(f"  Recovery: {recovery_instructions(operation.get('recovery'))}")
     else:
         print(f"  Last installer operation: {operation_health}")
-        print("  Recovery: omarchy plugin rescan; omarchy restart shell")
+        print(f"  Recovery: {PLUGIN_RESCAN_DISPLAY}; omarchy restart shell")
     print(f"  Core health: missing {len(missing_core)}, disabled {len(disabled_core)}, stale {len(stale_core)}")
     if missing_core: print(f"    missing: {', '.join(missing_core)}")
     if disabled_core: print(f"    disabled: {', '.join(disabled_core)}")

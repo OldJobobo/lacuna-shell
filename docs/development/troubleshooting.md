@@ -14,7 +14,7 @@ Status: reference
 3. Run:
 
    ```bash
-   omarchy plugin rescan
+   omarchy shell shell rescanPlugins
    omarchy plugin list
    ```
 

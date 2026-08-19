@@ -25,7 +25,7 @@ Use the repository check script for local validation:
 - `rg --files`: list tracked source-like files quickly.
 - `find . -maxdepth 2 -path './lacuna.*' -print`: inspect plugin layout.
 - `./scripts/dev deploy <plugin-id>`: developer-only live deploy from this checkout into `~/.config/omarchy/plugins/`, rescan, restart Omarchy shell, and verify the installed copy matches the repo.
-- `omarchy plugin rescan`: ask Omarchy shell to reload installed plugins.
+- `omarchy shell shell rescanPlugins`: ask Omarchy shell to reload installed plugins.
 - `OMARCHY_PATH="$HOME/.local/share/omarchy" omarchy-shell shell summon lacuna.menu "{}"`: smoke-test the menu plugin once implemented.
 
 For local testing, copy or symlink a plugin directory into `~/.config/omarchy/plugins/<plugin-id>/`, then rescan or restart Omarchy shell. No plugin should start a second Quickshell process.
@@ -38,7 +38,7 @@ When changing behavior that the running Omarchy shell should exhibit, repository
 - Use `./scripts/dev deploy <plugin-id> --dry-run` to preview the deploy/rescan/restart/verify steps.
 - If bypassing the helper, deploy the changed plugin into the live install at `~/.config/omarchy/plugins/<plugin-id>/` or confirm that path is a symlink to the edited repo directory.
 - If using `omarchy plugin update <plugin-id>`, remember it installs from the committed source state; it will not include uncommitted repo edits. Prefer `./scripts/dev deploy` for uncommitted fixes.
-- The dev helper runs `omarchy plugin rescan`, restarts Omarchy shell by default, and verifies the installed files match this checkout. Do not skip that verification.
+- The dev helper runs `omarchy shell shell rescanPlugins`, restarts Omarchy shell by default, and verifies the installed files match this checkout. Do not skip that verification.
 - Only report a live shell issue as fixed after the installed copy and the running shell have been refreshed. If you only changed the repo, say it is implemented in the repo but not yet deployed live.
 
 ## Coding Style & Naming Conventions

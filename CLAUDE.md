@@ -41,7 +41,7 @@ Developer live deploy and smoke testing:
 ```bash
 ./scripts/dev deploy lacuna.menu --dry-run
 ./scripts/dev deploy lacuna.menu
-omarchy plugin rescan
+omarchy shell shell rescanPlugins
 omarchy plugin list
 OMARCHY_PATH="$HOME/.local/share/omarchy" omarchy shell shell toggle lacuna.menu '{}'
 hyprctl layers
@@ -53,7 +53,7 @@ Live-fix rule: do not call a user-visible Omarchy plugin issue fixed just becaus
 ./scripts/dev deploy <id>
 ```
 
-The helper deploys the changed plugin from this checkout into `~/.config/omarchy/plugins/<id>/`, runs `omarchy plugin rescan`, restarts Omarchy shell by default, and verifies the installed files match the repo. Use `--all --only-changed` to deploy every repo plugin whose live copy differs or is missing, or add `--dry-run` to preview the exact live steps.
+The helper deploys the changed plugin from this checkout into `~/.config/omarchy/plugins/<id>/`, runs `omarchy shell shell rescanPlugins`, restarts Omarchy shell by default, and verifies the installed files match the repo. Use `--all --only-changed` to deploy every repo plugin whose live copy differs or is missing, or add `--dry-run` to preview the exact live steps.
 
 `omarchy plugin update <id>` installs from committed source state and will not include uncommitted fixes. Prefer `./scripts/dev deploy` for active development fixes. If only the repo has been changed, say it is implemented in the repo but not deployed live.
 
