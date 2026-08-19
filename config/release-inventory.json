@@ -1162,6 +1162,7 @@
         "barWidget": "Widget.qml"
       },
       "files": [
+        "TrayMenuNavigator.qml",
         "Widget.qml",
         "manifest.json"
       ]
