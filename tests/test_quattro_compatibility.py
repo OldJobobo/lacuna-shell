@@ -71,6 +71,37 @@ class QuattroCompatibilityTests(unittest.TestCase):
             result = module.report(repo_only=False)
         self.assertIn("Quickshell", result["hostVersionReviewRequired"])
 
+    def test_intentionally_newer_vendored_model_requires_review_on_reviewed_host(self):
+        module = load_module()
+        review = json.loads(module.REVIEW_FILE.read_text(encoding="utf-8"))
+        upstream_hashes = {
+            str(path): review["upstreamFiles"][name]
+            for name, path in module.BAR_FILES.items()
+        }
+        with mock.patch.object(
+            module,
+            "package_version",
+            side_effect=lambda name: (
+                review["reviewedOmarchyVersion"]
+                if name == "omarchy"
+                else review["reviewedQuickshellVersion"]
+            ),
+        ), mock.patch.object(
+            module, "sha256", side_effect=lambda path: upstream_hashes[str(path)]
+        ), mock.patch.object(
+            module, "vendored_parity", return_value=False
+        ), mock.patch.object(
+            module,
+            "plugin_validation",
+            return_value={plugin_id: "pass" for plugin_id in module.CORE_PLUGINS},
+        ):
+            result = module.report(repo_only=False)
+
+        self.assertEqual("review-required", result["status"])
+        self.assertEqual([], result["upstreamReviewRequired"])
+        self.assertEqual([], result["hostVersionReviewRequired"])
+        self.assertFalse(result["vendoredParity"])
+
     def test_changed_reviewed_upstream_hash_requires_review(self):
         module = load_module()
         original = module.REVIEW_FILE

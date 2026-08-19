@@ -122,6 +122,9 @@ def report(repo_only: bool) -> dict:
         if data["exists"] and reviewed_hashes.get(name) != data["sha256"]
     ]
     validation_failed = [plugin_id for plugin_id, state in validation.items() if state == "fail"]
+    vendored_commit_differs = (
+        review.get("vendoredOmarchyCommit") != review.get("reviewedOmarchyCommit")
+    )
     host_review_required = []
     if not repo_only:
         if omarchy_version != "unknown" and omarchy_version != review.get("reviewedOmarchyVersion"):
@@ -130,9 +133,9 @@ def report(repo_only: bool) -> dict:
             host_review_required.append("Quickshell")
     if repo_only:
         status = "declared"
-    elif missing or parity is False or validation_failed:
+    elif missing or validation_failed or (parity is False and not vendored_commit_differs):
         status = "incompatible"
-    elif changed or host_review_required:
+    elif changed or host_review_required or parity is False:
         status = "review-required"
     elif omarchy_version == "unknown" or quickshell_version == "unknown" or parity is None:
         status = "unknown"
