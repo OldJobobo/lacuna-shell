@@ -32,7 +32,7 @@ axes.
 | [Documentation Design Pass](./active/lacuna-documentation-design-pass-plan.md) | Implemented locally; deployment validation pending | Give the MkDocs site a stronger Lacuna identity through attached surfaces, seams, readable typography, authentic product specimens, and verified accessibility. |
 | [Sidebar Autohide](./active/lacuna-sidebar-autohide-plan.md) | Implemented and live-verified on DP-1 | Complete the extended pinned/all multi-output, fractional-scale, and left-bar validation matrix. |
 | [Workspaces Active-Only Hotfix](./active/lacuna-workspaces-active-only-hotfix-plan.md) | Implemented and live-deployed; product validation pending | Validate the opt-in single-active-workspace model while preserving the current multi-workspace default. |
-| [Development Lifecycle](./active/lacuna-development-lifecycle-plan.md) | Implemented in repository; remote protection pending | Configure GitHub branch/tag protection and clear the unrelated vendored-file mismatch for a clean full gate. |
+| [Development Lifecycle](./active/lacuna-development-lifecycle-plan.md) | Implemented; GitHub protection configured | Clear the unrelated vendored-file mismatch for a clean full gate. |
 
 ## Proposed And Draft
 
