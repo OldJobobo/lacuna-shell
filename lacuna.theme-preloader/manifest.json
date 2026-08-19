@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.theme-preloader",
   "name": "Lacuna Theme Preloader",
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.5.dev.0",
   "author": "Lacuna",
   "description": "Warms Omarchy theme switcher preview and image-selector caches.",
   "kinds": [

@@ -31,7 +31,8 @@ class ReleaseCheckTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn((ROOT / "VERSION").read_text().strip(), result.stdout)
 
-    def test_current_published_tag_passes_strict_release_authority(self):
+    def test_current_version_has_expected_publishability(self):
+        module = load_module()
         version = (ROOT / "VERSION").read_text().strip()
         result = subprocess.run(
             [str(SCRIPT), "--publish", "--tag", f"v{version}"],
@@ -40,7 +41,11 @@ class ReleaseCheckTests(unittest.TestCase):
             text=True,
             capture_output=True,
         )
-        self.assertEqual(0, result.returncode, result.stderr)
+        if module.load_release_version().is_publishable(version):
+            self.assertEqual(0, result.returncode, result.stderr)
+        else:
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("development version and cannot be published", result.stderr)
 
     def test_branch_ci_ref_is_not_treated_as_a_release_tag(self):
         env = dict(os.environ)

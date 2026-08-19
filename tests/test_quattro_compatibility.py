@@ -34,7 +34,9 @@ class QuattroCompatibilityTests(unittest.TestCase):
         self.assertEqual([], result["hostVersionReviewRequired"])
         self.assertTrue(all(state == "skipped" for state in result["corePluginValidation"].values()))
         self.assertRegex(result["reviewedQuickshellVersion"], r"^0\.3\.0")
-        self.assertTrue(any(row["suiteVersion"] == (ROOT / "VERSION").read_text().strip() for row in result["releaseTests"]))
+        suite_version = (ROOT / "VERSION").read_text().strip()
+        published_version = suite_version.removesuffix(".dev.0")
+        self.assertTrue(any(row["suiteVersion"] == published_version for row in result["releaseTests"]))
 
     def test_json_cli_exposes_explicit_live_result(self):
         result = subprocess.run(

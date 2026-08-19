@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.temperature",
   "name": "Lacuna Temperature",
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.5.dev.0",
   "author": "Lacuna",
   "description": "Lacuna-styled CPU temperature status for the Omarchy bar.",
   "kinds": [
