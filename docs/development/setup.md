@@ -27,7 +27,7 @@ For live testing, copy or symlink a plugin into the Omarchy plugin directory:
 Then rescan:
 
 ```bash
-omarchy plugin rescan
+omarchy shell shell rescanPlugins
 ```
 
 No plugin should start a second Quickshell process.

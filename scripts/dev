@@ -17,6 +17,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+PLUGIN_RESCAN_COMMAND = ["omarchy", "shell", "shell", "rescanPlugins"]
+PLUGIN_RESCAN_DISPLAY = " ".join(PLUGIN_RESCAN_COMMAND)
 BACKUPS_TO_KEEP = 2
 RUNTIME_BACKUPS_TO_KEEP = 8
 PLUGIN_BACKUP_RE = re.compile(
@@ -316,8 +318,8 @@ def rollback_deployments(changes: list[tuple[Path, Path | None]]) -> None:
 
 
 def recover_deployment() -> int:
-    print("  recovery: omarchy plugin rescan", flush=True)
-    return run_command(["omarchy", "plugin", "rescan"], dry_run=False)
+    print(f"  recovery: {PLUGIN_RESCAN_DISPLAY}", flush=True)
+    return run_command(PLUGIN_RESCAN_COMMAND, dry_run=False)
 
 
 def verify_plugins(plugin_ids: list[str], dry_run: bool) -> int:
@@ -361,7 +363,7 @@ def _deploy(args: argparse.Namespace) -> int:
     if deploy_ids:
         for plugin_id in deploy_ids:
             print(f"  deploy {plugin_id} -> {plugins_dir() / plugin_id}")
-        print("  omarchy plugin rescan")
+        print(f"  {PLUGIN_RESCAN_DISPLAY}")
         if args.restart_shell:
             print("  omarchy restart shell")
         print("  verify installed plugin files match this checkout")
@@ -382,7 +384,7 @@ def _deploy(args: argparse.Namespace) -> int:
             recover_deployment()
             return code
 
-    code = run_command(["omarchy", "plugin", "rescan"], args.dry_run)
+    code = run_command(PLUGIN_RESCAN_COMMAND, args.dry_run)
     if code != 0:
         print("  plugin rescan failed; restoring the previous deployed copies", flush=True)
         rollback_deployments(changes)

@@ -119,6 +119,15 @@ def load_installer_module():
 
 
 class LacunaInstallerTests(unittest.TestCase):
+    def test_rescan_command_is_non_quiet_for_transaction_failures(self):
+        module = load_installer_module()
+
+        self.assertEqual(
+            module.PLUGIN_RESCAN_COMMAND,
+            ["omarchy", "shell", "shell", "rescanPlugins"],
+        )
+        self.assertNotIn("-q", module.PLUGIN_RESCAN_COMMAND)
+
     def test_restart_timeout_is_accepted_only_for_a_new_healthy_shell(self):
         module = load_installer_module()
         command = ["omarchy", "restart", "shell"]
@@ -222,7 +231,7 @@ with module.installer_transaction_lock():
         self.assertIn("stage lacuna.bar ->", result.stdout)
         self.assertIn("stage lacuna.state ->", result.stdout)
         self.assertIn("stage lacuna.menu-button ->", result.stdout)
-        self.assertIn("omarchy plugin rescan", result.stdout)
+        self.assertIn("omarchy shell shell rescanPlugins", result.stdout)
         self.assertNotIn("omarchy-shell-refactor", result.stdout)
 
     def test_global_flags_work_before_or_after_subcommand(self):
@@ -246,7 +255,7 @@ with module.installer_transaction_lock():
         self.assertIn("apply Lacuna bar host layout in shell.json", result.stdout)
         self.assertIn("apply Lacuna bar layout in shell.json", result.stdout)
         self.assertEqual(result.stdout.count("omarchy restart shell"), 1)
-        self.assertEqual(result.stdout.count("omarchy plugin rescan"), 0)
+        self.assertEqual(result.stdout.count("omarchy shell shell rescanPlugins"), 0)
         self.assertNotIn("lacuna.compact-pill", result.stdout)
 
     def test_omakase_profile_is_exact_checked_set_with_canonical_layout(self):
@@ -357,7 +366,7 @@ with module.installer_transaction_lock():
         self.assertNotIn("Activation", result.stdout)
         self.assertNotIn("apply Lacuna bar host layout in shell.json", result.stdout)
         self.assertNotIn("omarchy restart shell", result.stdout)
-        self.assertIn("omarchy plugin rescan", result.stdout)
+        self.assertIn("omarchy shell shell rescanPlugins", result.stdout)
         self.assertNotIn("lacuna.compact-pill", result.stdout)
 
     def test_custom_plugin_selection_adds_required_dependencies(self):
@@ -377,7 +386,7 @@ with module.installer_transaction_lock():
         self.assertIn("apply Lacuna bar host layout in shell.json", result.stdout)
         self.assertIn("apply Lacuna bar layout in shell.json", result.stdout)
         self.assertEqual(result.stdout.count("omarchy restart shell"), 1)
-        self.assertEqual(result.stdout.count("omarchy plugin rescan"), 0)
+        self.assertEqual(result.stdout.count("omarchy shell shell rescanPlugins"), 0)
         self.assertNotIn("omarchy plugin enable", result.stdout)
         self.assertNotIn("omarchy plugin bar move", result.stdout)
 
@@ -396,7 +405,7 @@ with module.installer_transaction_lock():
         self.assertIn("remove", result.stdout)
         self.assertIn("remove Lacuna Hyprland overrides", result.stdout)
         self.assertIn("hyprctl reload", result.stdout)
-        self.assertIn("omarchy plugin rescan", result.stdout)
+        self.assertIn("omarchy shell shell rescanPlugins", result.stdout)
         self.assertNotIn("disable lacuna.clock if enabled", result.stdout)
         self.assertNotIn("omarchy plugin remove", result.stdout)
 
@@ -458,7 +467,7 @@ with module.installer_transaction_lock():
                 self.assertEqual(path.read_text(encoding="utf-8"), f"-- Omarchy {path.name}\n")
             self.assertEqual(
                 reload_command.call_args_list,
-                [mock.call(["hyprctl", "reload"], False), mock.call(["omarchy", "plugin", "rescan"], False)],
+                [mock.call(["hyprctl", "reload"], False), mock.call(["omarchy", "shell", "shell", "rescanPlugins"], False)],
             )
 
     def test_uninstall_restores_hyprland_overrides_when_reload_fails(self):
@@ -542,7 +551,7 @@ with module.installer_transaction_lock():
 
         self.assertIn("restore stock Omarchy bar layout in shell.json", result.stdout)
         self.assertIn("omarchy restart shell", result.stdout)
-        self.assertNotIn("omarchy plugin rescan", result.stdout)
+        self.assertNotIn("omarchy shell shell rescanPlugins", result.stdout)
 
     def test_selective_uninstall_refuses_to_break_installed_dependencies(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -709,7 +718,7 @@ with module.installer_transaction_lock():
         self.assertIn('"old":true', second)
         self.assertEqual([], changes)
         self.assertEqual(
-            [["omarchy", "plugin", "rescan"], ["omarchy", "plugin", "rescan"]],
+            [["omarchy", "shell", "shell", "rescanPlugins"], ["omarchy", "shell", "shell", "rescanPlugins"]],
             [item.args[0] for item in run_command.call_args_list],
         )
 
@@ -903,7 +912,7 @@ with module.installer_transaction_lock():
 
         self.assertEqual(result, 0)
         self.assertEqual(run_command.call_count, 1)
-        self.assertEqual(run_command.call_args.args[0], ["omarchy", "plugin", "rescan"])
+        self.assertEqual(run_command.call_args.args[0], ["omarchy", "shell", "shell", "rescanPlugins"])
         self.assertEqual(data["plugins"], [{"id": "lacuna.state"}])
         self.assertEqual(data["bar"]["layout"]["right"], [{"id": "lacuna.menu-button"}])
 
@@ -1681,6 +1690,27 @@ with module.installer_transaction_lock():
         self.assertIn("Core health: missing", result.stdout)
         self.assertIn("Recovery:", result.stdout)
 
+    def test_status_normalizes_legacy_rescan_recovery_instruction(self):
+        module = load_installer_module()
+
+        expected = (
+            "lacuna-shell status; omarchy shell shell rescanPlugins; "
+            "omarchy restart shell"
+        )
+        self.assertEqual(
+            module.recovery_instructions(
+                "lacuna-shell status; omarchy plugin rescan; omarchy restart shell"
+            ),
+            expected,
+        )
+        self.assertEqual(
+            module.recovery_instructions(
+                "lacuna-shell status; omarchy shell -q shell rescanPlugins; "
+                "omarchy restart shell"
+            ),
+            expected,
+        )
+
     def test_mutation_records_completed_and_failed_operation_phase(self):
         module = load_installer_module()
         with tempfile.TemporaryDirectory() as tmp:
@@ -1699,7 +1729,7 @@ with module.installer_transaction_lock():
             self.assertEqual(completed["exitCode"], 0)
             self.assertEqual(failed["phase"], "failed")
             self.assertEqual(failed["exitCode"], 7)
-            self.assertIn("omarchy plugin rescan", failed["recovery"])
+            self.assertIn("omarchy shell shell rescanPlugins", failed["recovery"])
 
     def test_update_repairs_missing_frame_animation_override_for_installed_bar(self):
         module = load_installer_module()
@@ -1778,7 +1808,7 @@ with module.installer_transaction_lock():
         self.assertNotIn("lacuna.state", result.stdout)
         self.assertIn("Already current: 1 plugin(s)", result.stdout)
         self.assertIn("stage lacuna.clock ->", result.stdout)
-        self.assertIn("omarchy plugin rescan", result.stdout)
+        self.assertIn("omarchy shell shell rescanPlugins", result.stdout)
 
 
 if __name__ == "__main__":

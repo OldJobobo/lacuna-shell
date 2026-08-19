@@ -93,7 +93,8 @@ remain; `./scripts/check.sh` passes.
 
 1. `./scripts/check.sh` — manifests/JSON, `qmllint` on all plugin QML, full pytest.
 2. `scripts/sync-vendored` then `tests/test_vendored_files.py` — zero drift.
-3. Live smoke: symlink plugins into `~/.config/omarchy/plugins/`, then `omarchy plugin rescan` and
+3. Live smoke: symlink plugins into `~/.config/omarchy/plugins/`, then
+   `omarchy shell shell rescanPlugins` and
    `OMARCHY_PATH="$HOME/.local/share/omarchy" omarchy shell shell toggle lacuna.menu '{}'`.
    Confirm, across **two** Omarchy themes: the reveal choreography (geometry-first, threshold
    content fade), the molding seams, fill-only surfaces, Hack Nerd Font, and that *all* color came

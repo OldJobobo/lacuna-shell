@@ -42,6 +42,15 @@ def load_dev_module():
 
 
 class DevToolTests(unittest.TestCase):
+    def test_rescan_command_is_non_quiet_for_transaction_failures(self):
+        module = load_dev_module()
+
+        self.assertEqual(
+            module.PLUGIN_RESCAN_COMMAND,
+            ["omarchy", "shell", "shell", "rescanPlugins"],
+        )
+        self.assertNotIn("-q", module.PLUGIN_RESCAN_COMMAND)
+
     def test_omarchy_host_paths_ignore_custom_xdg_config_home(self):
         module = load_dev_module()
 
@@ -68,7 +77,7 @@ class DevToolTests(unittest.TestCase):
 
         self.assertIn("Dev deploy plan", result.stdout)
         self.assertIn("deploy lacuna.menu ->", result.stdout)
-        self.assertIn("omarchy plugin rescan", result.stdout)
+        self.assertIn("omarchy shell shell rescanPlugins", result.stdout)
         self.assertIn("omarchy restart shell", result.stdout)
         self.assertIn("verify installed plugin files match this checkout", result.stdout)
 
@@ -97,7 +106,7 @@ class DevToolTests(unittest.TestCase):
         self.assertTrue(matches, issues)
         self.assertEqual(
             [call.args[0] for call in run_command.call_args_list],
-            [["omarchy", "plugin", "rescan"], ["omarchy", "restart", "shell"]],
+            [["omarchy", "shell", "shell", "rescanPlugins"], ["omarchy", "restart", "shell"]],
         )
 
     def test_cleanup_backups_migrates_exact_legacy_names_and_prunes_per_plugin(self):
@@ -253,7 +262,10 @@ class DevToolTests(unittest.TestCase):
         self.assertEqual(7, result)
         self.assertIn('"old":true', restored)
         self.assertEqual(
-            [["omarchy", "plugin", "rescan"], ["omarchy", "plugin", "rescan"]],
+            [
+                ["omarchy", "shell", "shell", "rescanPlugins"],
+                ["omarchy", "shell", "shell", "rescanPlugins"],
+            ],
             [item.args[0] for item in run_command.call_args_list],
         )
 
