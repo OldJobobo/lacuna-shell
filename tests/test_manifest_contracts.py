@@ -2,7 +2,6 @@ import json
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY_POINT_BY_KIND = {
     "bar": "bar",
@@ -13,7 +12,7 @@ ENTRY_POINT_BY_KIND = {
     "service": "service",
 }
 LACUNA_BUNDLES = {"standalone", "core", "theme", "ambience", "legacy"}
-LACUNA_STABILITIES = {"beta", "experimental", "deprecated"}
+LACUNA_STABILITIES = {"stable", "beta", "experimental", "deprecated"}
 SUITE_VERSION = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
 
 
@@ -58,17 +57,17 @@ class ManifestContractTests(unittest.TestCase):
                 for plugin_id in meta[key]:
                     self.assertIn(plugin_id, plugin_ids, f"{path}: unknown lacuna.{key} {plugin_id}")
 
-    def test_manifest_stability_is_explicit_and_uses_beta_line_vocabulary(self):
+    def test_manifest_stability_is_explicit_and_independent_from_suite_channel(self):
         for path in manifest_paths():
             manifest = read_json(path)
             stability = manifest.get("lacuna", {}).get("stability")
             self.assertIn(stability, LACUNA_STABILITIES, str(path))
-            expected = (
-                "experimental" if manifest["id"] == "lacuna.script-pill"
-                else "deprecated" if manifest["id"] == "lacuna.compact-pill"
-                else "beta"
-            )
-            self.assertEqual(stability, expected, str(path))
+            if manifest["id"] == "lacuna.script-pill":
+                self.assertEqual("experimental", stability, str(path))
+            elif manifest["id"] == "lacuna.compact-pill":
+                self.assertEqual("deprecated", stability, str(path))
+            else:
+                self.assertIn(stability, {"beta", "stable"}, str(path))
 
     def test_workspace_active_only_setting_defaults_to_false(self):
         manifest = read_json(ROOT / "lacuna.workspaces" / "manifest.json")
@@ -80,7 +79,10 @@ class ManifestContractTests(unittest.TestCase):
         self.assertIs(schema["activeWorkspaceOnly"]["defaultValue"], False)
 
     def test_manifest_versions_match_suite_version(self):
-        self.assertRegex(SUITE_VERSION, r"^\d+\.\d+\.\d+(?:-(?:beta|rc)\.\d+)?$")
+        self.assertRegex(
+            SUITE_VERSION,
+            r"^\d+\.\d+\.\d+(?:-(?:(?:alpha|beta|rc)\.\d+|(?:beta|rc)\.\d+\.dev\.0))?$",
+        )
         for path in manifest_paths():
             manifest = read_json(path)
             self.assertEqual(SUITE_VERSION, manifest.get("version"), str(path))

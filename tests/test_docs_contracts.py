@@ -1,10 +1,18 @@
 import json
+import re
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PLANS = ROOT / "docs" / "plans"
+
+
+def published_version() -> str:
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    match = re.search(r"(?m)^## \[(\d+\.\d+\.\d+(?:-(?:beta|rc)\.\d+)?)\]", changelog)
+    if match is None:
+        raise AssertionError("CHANGELOG.md has no published release heading")
+    return match.group(1)
 
 
 class DocsContractTests(unittest.TestCase):
@@ -26,8 +34,11 @@ class DocsContractTests(unittest.TestCase):
             self.assertIn("beta", text)
             self.assertIn("RC", text)
             self.assertIn("stable", text)
-        self.assertIn("0.1.0beta.4", release)
-        self.assertIn("0.1.0beta.4", release_notes)
+        current_version = published_version()
+        arch_version = current_version.replace("-", "")
+        self.assertIn(arch_version, release)
+        self.assertIn(current_version, release_notes)
+        self.assertIn(arch_version, release_notes)
         self.assertIn("omarchy pkg aur add lacuna-shell", user_install)
         self.assertNotIn("sudo pacman -U", user_install)
         self.assertNotIn("releases/download/", user_install)
@@ -86,6 +97,7 @@ class DocsContractTests(unittest.TestCase):
             "docs/architecture/plugin-contracts.md",
             "docs/architecture/services-and-state.md",
             "docs/architecture/omarchy-integration.md",
+            "docs/development/workflow.md",
             "docs/development/setup.md",
             "docs/development/testing.md",
             "docs/development/release.md",
@@ -129,7 +141,7 @@ class DocsContractTests(unittest.TestCase):
         for directory in ["getting-started", "guides", "configuration", "operations", "help", "releases"]:
             user_paths.extend(sorted((ROOT / "docs" / directory).glob("*.md")))
 
-        current_version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        current_version = published_version()
         combined = "\n".join(path.read_text(encoding="utf-8") for path in user_paths)
         self.assertIn(current_version, combined)
         self.assertIn("omarchy pkg aur add lacuna-shell", combined)
@@ -263,7 +275,7 @@ class DocsContractTests(unittest.TestCase):
         self.assertIn('<div class="lacuna-hero" markdown="1">', home)
         self.assertIn("# The desktop lives in the seam.", home)
         self.assertIn('<div class="lacuna-release">', home)
-        current_version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        current_version = published_version()
         self.assertEqual(1, home.count(current_version))
         self.assertIn(f'<span class="lacuna-release__version">{current_version}</span>', home)
         self.assertIn('href="help/compatibility/"', home)
@@ -487,7 +499,7 @@ class DocsContractTests(unittest.TestCase):
             self.assertIn("exact checked 46", document)
             self.assertIn("lacuna.media-player-video", document)
             self.assertIn("safe-only", document)
-            self.assertIn("`stable` is reserved", document)
+            self.assertIn("maturity is independent of the suite", document)
             self.assertIn("fresh explicit confirmation", document)
             self.assertNotRegex(document, r"(?m)^P1 workstream is complete\b")
         self.assertIn("no P1 workstream is complete by this record.", p1)
@@ -550,16 +562,18 @@ class DocsContractTests(unittest.TestCase):
 
     def test_beta_candidate_changelog_is_honest_and_scoped(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        current_version = published_version()
+        current_heading = f"## [{current_version}]"
         self.assertIn("## [Unreleased]", changelog)
-        self.assertIn("## [0.1.0-beta.5] - 2026-08-11", changelog)
-        self.assertLess(changelog.index("## [Unreleased]"), changelog.index("## [0.1.0-beta.5]"))
+        self.assertIn(current_heading, changelog)
+        self.assertLess(changelog.index("## [Unreleased]"), changelog.index(current_heading))
         self.assertIn("### Beta scope", changelog)
         self.assertIn("### Migration", changelog)
         self.assertIn("### Known limitations", changelog)
         self.assertIn("`beta`,\n  `experimental`, `deprecated`", changelog)
         self.assertIn("this is not a declaration of minimum supported", changelog)
         self.assertIn("P1 completion and destructive lifecycle rehearsal are separate", changelog)
-        self.assertIn("compare/v0.1.0-beta.5...HEAD", changelog)
+        self.assertIn(f"compare/v{current_version}...HEAD", changelog)
         self.assertNotIn("(`stable`,\n  `experimental`, `deprecated`)", changelog)
 
     def test_distribution_scaffolding_exists(self):

@@ -63,17 +63,8 @@ jobs:
       - name: Run release checks
         run: ./scripts/check.sh
 
-      - name: Verify tag matches VERSION
-        run: |
-          version="$(cat VERSION)"
-          tag="${GITHUB_REF_NAME#v}"
-          if [ "$version" != "$tag" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match VERSION ${version}" >&2
-            exit 1
-          fi
-
-      - name: Validate manifest/VERSION parity
-        run: python3 -m pytest tests/test_manifest_contracts.py -q
+      - name: Validate publishable release authority
+        run: scripts/release-check --publish --tag "$GITHUB_REF_NAME" --notes-output dist/release-notes.md
 
       - name: Build and rehearse Arch package
         run: scripts/rehearse-aur-package --output-dir dist
@@ -84,7 +75,8 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          generate_release_notes: false
+          body_path: dist/release-notes.md
           prerelease: ${{ contains(github.ref_name, '-beta.') || contains(github.ref_name, '-rc.') }}
           files: |
             dist/*.tar.gz

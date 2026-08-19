@@ -11,7 +11,6 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-
 ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = ROOT / "scripts" / "lacuna"
 
@@ -108,8 +107,8 @@ def install_omakase_roots(config_home, plugin_ids=OMAKASE_PLUGIN_IDS):
 
 
 def load_installer_module():
-    import importlib.util
     import importlib.machinery
+    import importlib.util
 
     loader = importlib.machinery.SourceFileLoader("lacuna_installer", str(INSTALLER))
     spec = importlib.util.spec_from_loader("lacuna_installer", loader)
@@ -925,9 +924,23 @@ with module.installer_transaction_lock():
             "lacuna.script-pill",
         )
 
-    def test_installer_rejects_missing_invalid_and_reserved_manifest_stability(self):
+    def test_installer_accepts_stable_and_rejects_missing_or_invalid_manifest_stability(self):
         module = load_installer_module()
-        for stability in (None, "stable", "preview"):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plugin_dir = root / "lacuna.fake"
+            plugin_dir.mkdir()
+            manifest = {
+                "id": "lacuna.fake",
+                "name": "Fake",
+                "kinds": [],
+                "lacuna": {"standalone": True, "bundle": "standalone", "requires": [], "recommends": [], "stability": "stable"},
+            }
+            (plugin_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            with mock.patch.object(module, "ROOT", root):
+                self.assertEqual("stable", module.load_plugins()["lacuna.fake"].stability)
+
+        for stability in (None, "preview"):
             with self.subTest(stability=stability), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 plugin_dir = root / "lacuna.fake"
@@ -1662,7 +1675,7 @@ with module.installer_transaction_lock():
         self.assertIn("lacuna.state (staged)", result.stdout)
         self.assertIn("installed unknown, repo 0.1.0", result.stdout)
         self.assertIn("Omarchy config:", result.stdout)
-        self.assertIn("Settings migration: missing", result.stdout)
+        self.assertIn("Settings migration: missing (schema unknown, expected 3)", result.stdout)
         self.assertIn("Sidebar monitor policy: auto", result.stdout)
         self.assertIn("Last installer operation: missing", result.stdout)
         self.assertIn("Core health: missing", result.stdout)

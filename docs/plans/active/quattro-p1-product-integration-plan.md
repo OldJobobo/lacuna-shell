@@ -47,10 +47,11 @@ They record the checkpoint only; no P1 workstream is complete by this record.
    provider credentials/config, favorites, queue/history, auth/reminder files,
    preferred/custom apps, unrelated Omarchy state, other bar keys, and unknown
    JSON-safe fields.
-4. **Stability vocabulary:** current manifests use exactly `beta`,
-   `experimental`, or `deprecated`; all supported manifests are `beta` except
-   `lacuna.script-pill=experimental` and
-   `lacuna.compact-pill=deprecated`. `stable` is reserved and never inferred.
+4. **Stability vocabulary:** manifests use exactly `stable`, `beta`,
+   `experimental`, or `deprecated`. Current supported manifests remain `beta`
+   except `lacuna.script-pill=experimental` and
+   `lacuna.compact-pill=deprecated`; maturity is independent of the suite
+   channel and is never inferred.
 5. **Release rehearsal:** destructive rehearsal is approved only for the
    current user and machine after automatic backups, verified restoration
    capability, and a fresh explicit confirmation immediately before destructive

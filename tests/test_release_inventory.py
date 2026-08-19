@@ -8,7 +8,6 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-
 ROOT = Path(__file__).resolve().parents[1]
 INVENTORY = ROOT / "config/release-inventory.json"
 
@@ -36,17 +35,32 @@ class ReleaseInventoryTests(unittest.TestCase):
         }
         inventory_stability = {plugin["id"]: plugin["stability"] for plugin in data["plugins"]}
         self.assertEqual(manifest_stability, inventory_stability)
-        self.assertTrue(set(inventory_stability.values()) <= {"beta", "experimental", "deprecated"})
+        self.assertTrue(set(inventory_stability.values()) <= {"stable", "beta", "experimental", "deprecated"})
         self.assertEqual(data["package"]["requiredPackages"], ["omarchy", "quickshell", "python", "qt6-multimedia"])
         self.assertIn("omakase-profile.json", data["package"]["configFiles"])
 
-    def test_generator_rejects_missing_invalid_and_reserved_stability(self):
+    def test_generator_accepts_stable_and_rejects_missing_or_invalid_stability(self):
         loader = importlib.machinery.SourceFileLoader("release_inventory_test", str(ROOT / "scripts/release-inventory"))
         spec = importlib.util.spec_from_loader("release_inventory_test", loader)
         module = importlib.util.module_from_spec(spec)
         sys.modules[spec.name] = module
         loader.exec_module(module)
-        for stability in (None, "stable", "preview"):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plugin_dir = root / "lacuna.fake"
+            plugin_dir.mkdir()
+            (plugin_dir / "manifest.json").write_text(
+                json.dumps({"id": "lacuna.fake", "lacuna": {"stability": "stable"}}),
+                encoding="utf-8",
+            )
+            with (
+                mock.patch.object(module, "ROOT", root),
+                mock.patch.object(module, "payload_files", return_value=["manifest.json"]),
+            ):
+                generated = module.generate()
+            self.assertEqual("stable", generated["plugins"][0]["stability"])
+
+        for stability in (None, "preview"):
             with self.subTest(stability=stability), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 plugin_dir = root / "lacuna.fake"

@@ -20,23 +20,35 @@ rules live in [`AGENTS.md`](AGENTS.md) and [`CLAUDE.md`](CLAUDE.md).
 
 ## Development workflow
 
-1. Branch off `master` (never commit straight to it).
-2. Make your change. Keep the diff focused and match surrounding style.
-3. Run the full gate before pushing:
+The canonical issue-to-release protocol, branch names, review order, risk
+classes, and validation tiers live in
+[`docs/development/workflow.md`](docs/development/workflow.md).
 
-   ```bash
-   ./scripts/check.sh    # manifest/config JSON, qmllint, shellcheck, vendored parity, pytest
-   ```
-
-   Targeted runs while iterating:
+1. Start from current `master` and create a short-lived `fix/`, `feat/`,
+   `refactor/`, `docs/`, `release/`, or `hotfix/` branch. Never commit directly
+   to `master`.
+2. Link behavioral, feature, state, installer, migration, packaging, and
+   cross-plugin work to an issue. Keep the diff focused and match surrounding
+   style.
+3. Run targeted checks while iterating, then the full gate before review:
 
    ```bash
    python3 -m pytest tests/test_qml_contracts.py -k <name>
    qmllint path/to/Changed.qml
+   ./scripts/check.sh
    ```
 
-4. For QML changes, smoke-test live (see `CLAUDE.md`): symlink the plugin into
-   `~/.config/omarchy/plugins/<id>/`, then `omarchy plugin rescan` and toggle.
+4. For visible or stateful changes, deploy the exact repository copy and record
+   live evidence:
+
+   ```bash
+   ./scripts/dev deploy <plugin-id>
+   # Or for cross-plugin work:
+   ./scripts/dev deploy --all --only-changed
+   ```
+
+5. Open a pull request with exact test results, host versions, rollback notes,
+   and screenshots when useful. Prefer squash merge and delete the branch.
 
 Optional but recommended: `pip install pre-commit && pre-commit install` to run
 ruff, shellcheck, vendored-parity, and pytest before each commit.
@@ -62,6 +74,10 @@ ruff, shellcheck, vendored-parity, and pytest before each commit.
 
 ## Releasing
 
-Bump [`VERSION`](VERSION) (mirrored into every manifest — a test enforces this),
-move the `CHANGELOG.md` `[Unreleased]` entries under the new version, and tag
-`v<version>`.
+Every beta, RC, stable, and patch release uses a `release/<version>` pull
+request and the Tier 3 gate in the canonical workflow. Use
+[`scripts/release-version`](scripts/release-version) to synchronize `VERSION`,
+manifests, and Arch metadata, finalize `CHANGELOG.md`, run
+`scripts/release-check`, and follow
+[`docs/development/release.md`](docs/development/release.md). Never move a
+published tag or replace a release artifact.

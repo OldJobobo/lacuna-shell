@@ -52,8 +52,18 @@ Closed issues retained for context:
 
 ## Issue Hygiene Rules
 
+Follow the intake and triage protocol in
+[`development/workflow.md`](development/workflow.md).
+
+- Require an issue for behavioral bugs, features, state/schema changes,
+  installer/migration/packaging work, release blockers, and cross-plugin
+  refactors. Documentation typos and mechanical maintenance may go directly to
+  a pull request.
+- Every triaged issue records the affected plugin, acceptance criteria, change
+  class, regression risk, required validation tier, live-verification need,
+  target release, and rollback implications.
 - Every open issue should have at least one area label once triaged.
 - Milestones should represent deliverable slices, not vague themes.
 - Keep implementation details in issue bodies or linked plans; keep this file as a map.
-- When a repo plan graduates into actionable work, create issues and link the plan.
+- When a repo plan graduates into actionable work, create issues and link the plan both ways.
 - When an issue closes, update this file only if its closure changes the project roadmap.
