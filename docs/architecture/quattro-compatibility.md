@@ -37,7 +37,10 @@ claim compatibility.
 release workflows to verify copied source such as `BarModel.js`. Advancing that
 pin does not advance `reviewedOmarchyCommit` or claim host compatibility; host
 acceptance still requires updated source hashes, live evidence, and a passed
-release-test record.
+release-test record. While those pins differ, running the development checkout
+on the older reviewed host reports `review-required` rather than treating the
+expected cross-commit byte difference as corruption; it does not report
+`compatible` until the newer tree has its own evidence.
 
 The current upstream bar source is package-managed rather than a Git checkout,
 so the package version and source hashes are the authoritative revision record
