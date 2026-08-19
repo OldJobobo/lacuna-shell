@@ -1,6 +1,6 @@
 # Lacuna Development Lifecycle Plan
 
-Status: implemented in repository; remote protection and clean full-gate validation pending
+Status: implemented; GitHub protection configured; clean full-gate validation pending
 
 Purpose: connect Lacuna's existing issue, plan, branch, review, test, live-deploy,
 version, packaging, and release machinery into one enforceable software
@@ -67,12 +67,13 @@ stable, and patch releases from recorded compatibility evidence.
 ### Phase 4 — Operational adoption
 
 Repository implementation can document but cannot itself enable remote GitHub
-settings. Maintainers must configure:
+settings. On 2026-08-19 the repository configured:
 
-- pull requests and the `Check` status as requirements for `master`;
-- resolved review conversations;
-- no force pushes to `master`;
-- protection against deleting or moving `v*` tags.
+- pull requests and the `check` status as requirements for `master`;
+- resolved review conversations and strict up-to-date checks;
+- linear history with administrator enforcement;
+- no force pushes or branch deletion on `master`;
+- an active, no-bypass ruleset preventing deletion or updates of `v*` tags.
 
 Review active plans monthly and keep only current delivery work in `active/`.
 Prune merged or abandoned branches after confirming they contain no unique work.
