@@ -34,9 +34,49 @@ BarWidget {
   property real revealProgress: expanded ? 1 : 0
   readonly property real revealExtent: drawerExtent * revealProgress
 
+  // QsMenuEntry.display() requires QApplication mode, which Omarchy's shell
+  // intentionally does not use. The navigator retains one QsMenuOpener per
+  // active menu level and owns settling, invalidation, and teardown ordering.
+  property var trayMenuFlickItem: null
+  readonly property int submenuDepth: trayMenuNavigator.depth
+  readonly property string currentTitle: trayMenuNavigator.currentTitle
+  readonly property var currentChildren: trayMenuNavigator.currentChildren
+  readonly property bool trayMenuSettling: trayMenuNavigator.inputSettling
+
+  Component {
+    id: submenuOpenerComponent
+    QsMenuOpener {}
+  }
+
+  TrayMenuNavigator {
+    id: trayMenuNavigator
+    openerComponent: submenuOpenerComponent
+    openerOwner: root
+    rootChildren: trayMenuOpener.children
+  }
+
+  function resetTrayMenu() {
+    if (trayMenuFlickItem) trayMenuFlickItem.contentY = 0
+    trayMenuNavigator.reset()
+  }
+
+  function enterSubmenu(entry, title) {
+    if (!trayMenuNavigator.inputAllowed()) return false
+    if (trayMenuFlickItem) trayMenuFlickItem.contentY = 0
+    return trayMenuNavigator.enterSubmenu(entry, title)
+  }
+
+  function leaveSubmenu() {
+    if (!trayMenuNavigator.inputAllowed()) return false
+    if (trayMenuFlickItem) trayMenuFlickItem.contentY = 0
+    return trayMenuNavigator.leaveSubmenu()
+  }
+
   function close() {
     managePopupOpen = false
     trayMenuOpen = false
+    if (trayMenuFlickItem) trayMenuFlickItem.contentY = 0
+    trayMenuNavigator.resetForRoot(null)
     activeTrayItem = null
     activeTrayAnchor = null
   }
@@ -49,13 +89,18 @@ BarWidget {
     if (root.bar) root.bar.hideTooltip(anchorItem)
 
     if (!item.menu) {
+      var anchorWindow = anchorItem.QsWindow.window
       var localX = Math.round(mouse ? mouse.x : anchorItem.width / 2)
       var localY = Math.round(mouse ? mouse.y : anchorItem.height / 2)
-      var point = anchorItem.QsWindow.contentItem.mapFromItem(anchorItem, localX, localY)
-      item.display(anchorItem.QsWindow.window, point.x, point.y)
+      var point = anchorWindow.contentItem.mapFromItem(anchorItem, localX, localY)
+      root.close()
+      item.display(anchorWindow, point.x, point.y)
       return
     }
 
+    // Publish an empty nested hierarchy before changing the root opener menu.
+    if (trayMenuFlickItem) trayMenuFlickItem.contentY = 0
+    trayMenuNavigator.resetForRoot(item)
     activeTrayItem = item
     activeTrayAnchor = anchorItem
     trayMenuOpen = true
@@ -478,7 +523,10 @@ BarWidget {
     contentHeight: trayMenuPopup.fittedContentHeight(trayMenuColumn.implicitHeight)
 
     Flickable {
+      id: trayMenuFlick
       anchors.fill: parent
+      Component.onCompleted: root.trayMenuFlickItem = this
+      Component.onDestruction: if (root.trayMenuFlickItem === this) root.trayMenuFlickItem = null
       clip: true
       contentWidth: width
       contentHeight: trayMenuColumn.implicitHeight
@@ -491,8 +539,54 @@ BarWidget {
         width: parent.width
         spacing: 0
 
+        Item {
+          id: submenuBackRow
+          visible: root.submenuDepth > 0
+          width: trayMenuColumn.width
+          implicitHeight: visible ? Style.space(30) : 0
+
+          Rectangle {
+            anchors.fill: parent
+            radius: Math.max(2, Style.cornerRadius)
+            color: backMouse.containsMouse ? Style.hoverFillFor(root.foreground, root.foreground) : "transparent"
+          }
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            width: Style.space(22)
+            horizontalAlignment: Text.AlignHCenter
+            text: "\u2039"
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.bodySmall
+          }
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            anchors.leftMargin: Style.space(28)
+            anchors.right: parent.right
+            anchors.rightMargin: Style.space(10)
+            text: root.currentTitle
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.bodySmall
+            elide: Text.ElideRight
+          }
+
+          MouseArea {
+            id: backMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            enabled: !root.trayMenuSettling
+            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+            onClicked: root.leaveSubmenu()
+          }
+        }
+
         Repeater {
-          model: trayMenuOpener.children
+          model: root.currentChildren
 
           delegate: Item {
             id: menuRow
@@ -501,8 +595,9 @@ BarWidget {
 
             readonly property string rowText: String(modelData.text || "")
             readonly property string activeTitle: root.activeTrayItem ? String(root.activeTrayItem.title || root.activeTrayItem.id || "") : ""
-            readonly property bool rootTitleEntry: index === 0 && modelData.hasChildren && rowText.toLowerCase() === activeTitle.toLowerCase()
-            readonly property bool leadingSeparator: modelData.isSeparator && index <= 1
+            readonly property bool atRoot: root.submenuDepth === 0
+            readonly property bool rootTitleEntry: atRoot && index === 0 && modelData.hasChildren && rowText.toLowerCase() === activeTitle.toLowerCase()
+            readonly property bool leadingSeparator: atRoot && modelData.isSeparator && index <= 1
             readonly property bool hiddenRow: rootTitleEntry || leadingSeparator
 
             visible: !hiddenRow
@@ -586,9 +681,9 @@ BarWidget {
               enabled: !menuRow.modelData.isSeparator && menuRow.modelData.enabled
               cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
               onClicked: {
+                if (root.trayMenuSettling) return
                 if (menuRow.modelData.hasChildren) {
-                  var point = menuRow.QsWindow.contentItem.mapFromItem(menuRow, menuRow.width, menuRow.height / 2)
-                  menuRow.modelData.display(menuRow.QsWindow.window, point.x, point.y)
+                  root.enterSubmenu(menuRow.modelData, menuRow.rowText)
                 } else {
                   menuRow.modelData.triggered()
                   root.close()
