@@ -250,7 +250,7 @@ true:
   suppressed in the bar and dimmed in the flyout. Claude currently reports both
   session and weekly windows through its authenticated usage endpoint. Both
   widgets restore a provider window automatically if it reappears.
-- The suite and manifests currently report `0.1.0-beta.4`; the matching public
+- The suite and manifests currently report `0.1.0-beta.5`; the matching public
   beta package is published and installable. P1 completion and destructive
   lifecycle rehearsal remain separate project gates rather than claims that the
   public beta has not shipped.

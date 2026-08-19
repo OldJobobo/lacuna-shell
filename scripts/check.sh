@@ -30,6 +30,7 @@ else
 fi
 
 scripts/sync-vendored --check
+scripts/release-check
 scripts/check-aur-package
 
 if python3 -c 'import pytest' >/dev/null 2>&1; then

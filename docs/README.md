@@ -32,6 +32,7 @@ for older inbound links; they are not independent copies of current guidance.
 
 Contributor and implementation authority remains separate from user guidance:
 
+- [Development workflow](development/workflow.md)
 - [Contributor setup](development/setup.md)
 - [Testing](development/testing.md)
 - [Developer troubleshooting](development/troubleshooting.md)
@@ -72,5 +73,7 @@ plan changes lifecycle.
 Current facts come from machine-readable or executable authorities wherever
 possible: `VERSION`, `CHANGELOG.md`, `scripts/lacuna`,
 `config/omakase-profile.json`, `config/quattro-compatibility.json`, and plugin
-manifests. User prose summarizes those sources; it must not invent another
-version, command, plugin count, default, or support range.
+manifests. `VERSION` identifies the checkout; the first published heading in
+`CHANGELOG.md` identifies the release described by user documentation when the
+checkout is on a `.dev.0` version. User prose summarizes those sources; it must
+not invent another version, command, plugin count, default, or support range.

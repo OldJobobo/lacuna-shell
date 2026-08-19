@@ -7,7 +7,6 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/release-version"
 
@@ -22,12 +21,41 @@ def load_module():
 
 
 class ReleaseVersionTests(unittest.TestCase):
-    def test_supported_versions_map_to_ordered_arch_versions(self):
+    def test_supported_versions_map_to_arch_versions_and_publishability(self):
         module = load_module()
-        self.assertEqual(module.arch_version("0.1.0-beta.12"), "0.1.0beta.12")
-        self.assertEqual(module.arch_version("0.1.0-rc.2"), "0.1.0rc.2")
-        self.assertEqual(module.arch_version("0.1.0"), "0.1.0")
-        for invalid in ["0.1", "0.1.0-alpha.1", "0.1.0+build", "v0.1.0"]:
+        cases = {
+            "0.1.0-beta.12": "0.1.0beta.12",
+            "0.1.0-beta.12.dev.0": "0.1.0beta.12.dev.0",
+            "0.1.0-rc.2": "0.1.0rc.2",
+            "0.1.0-rc.2.dev.0": "0.1.0rc.2.dev.0",
+            "0.2.0-alpha.0": "0.2.0alpha.0",
+            "0.1.0": "0.1.0",
+            "0.1.1": "0.1.1",
+        }
+        for version, expected in cases.items():
+            with self.subTest(version=version):
+                self.assertEqual(expected, module.arch_version(version))
+
+        for version in ["0.1.0-beta.12", "0.1.0-rc.2", "0.1.0", "0.1.1"]:
+            self.assertTrue(module.is_publishable(version), version)
+        for version in ["0.1.0-beta.12.dev.0", "0.1.0-rc.2.dev.0", "0.2.0-alpha.0"]:
+            self.assertFalse(module.is_publishable(version), version)
+
+        self.assertLess(module.version_key("0.1.0-beta.5"), module.version_key("0.1.0-beta.5.dev.0"))
+        self.assertLess(module.version_key("0.1.0-beta.5.dev.0"), module.version_key("0.1.0-beta.6"))
+        self.assertLess(module.version_key("0.1.0-rc.1"), module.version_key("0.1.0"))
+
+        for invalid in [
+            "0.1",
+            "0.1.0-dev.1",
+            "0.1.0-alpha.1.dev.0",
+            "0.1.0+build",
+            "v0.1.0",
+            "01.1.0",
+            "0.01.0",
+            "0.1.00",
+            "0.1.0-beta.01",
+        ]:
             with self.assertRaises(ValueError):
                 module.arch_version(invalid)
 

@@ -1,10 +1,23 @@
 {
+  "schemaVersion": 2,
   "reviewedOmarchyVersion": "4.0.0.r1438.g9b693cc-1",
   "reviewedOmarchyCommit": "9b693cca63d111fc3faba16aea149d226881b427",
+  "reviewedQuickshellVersion": "0.3.0.r18.g10b439f-3",
   "upstreamFiles": {
     "Bar.qml": "d516e6393c8946955d08d71cb310751c832389d3a2636b9b2d3aacccf819be55",
     "BarModel.js": "ee5ecdfa1883b0eda57f417050e139f6927b3332d032d03d7f1d7afbcb2bf292",
     "Ui/BarWidget.qml": "8be00e2553a486b3dbfcb4f99de976035f323c4061b993dbc1842c75ff8b9022",
     "shell.qml": "80bc9dd4ed7dfdc8290a93fa535471dd3a5ad510ce8317a6c05b502c3eb045ca"
-  }
+  },
+  "releaseTests": [
+    {
+      "suiteVersion": "0.1.0-beta.5",
+      "omarchyVersion": "4.0.0.r1438.g9b693cc-1",
+      "omarchyCommit": "9b693cca63d111fc3faba16aea149d226881b427",
+      "quickshellVersion": "0.3.0.r18.g10b439f-3",
+      "testedAt": "2026-08-11",
+      "result": "passed",
+      "notes": "Compatibility baseline passed for the published beta; destructive lifecycle rehearsal remains a separate recorded gate."
+    }
+  ]
 }

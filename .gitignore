@@ -6,6 +6,7 @@ __pycache__/
 .coverage
 htmlcov/
 dist/
+*.pkg.tar.*
 .venv/
 venv/
 site/

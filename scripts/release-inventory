@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "config/release-inventory.json"
-ALLOWED_STABILITIES = {"beta", "experimental", "deprecated"}
+ALLOWED_STABILITIES = {"stable", "beta", "experimental", "deprecated"}
 
 
 def payload_files(path: Path) -> list[str]:
@@ -40,7 +40,7 @@ def generate() -> dict:
             allowed = ", ".join(sorted(ALLOWED_STABILITIES))
             raise SystemExit(
                 f"{manifest_path}: lacuna.stability must be explicit and one of {allowed}; "
-                f"got {stability!r}. 'stable' is reserved."
+                f"got {stability!r}."
             )
         plugin_dir = manifest_path.parent
         plugins.append(

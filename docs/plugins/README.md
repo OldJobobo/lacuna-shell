@@ -128,14 +128,15 @@ when validating or installing plugins.
 
 ## Stability Tiers
 
-The beta-line vocabulary is exactly `beta`, `experimental`, and `deprecated`.
-Every manifest must declare one explicitly; the installer and release inventory
-reject missing, invalid, or reserved values. `stable` is reserved for a future
-release line and must not be inferred or used as current manifest metadata.
-The installer displays every plugin's declared tier.
+The plugin-maturity vocabulary is exactly `stable`, `beta`, `experimental`,
+and `deprecated`. Every manifest must declare one explicitly; the installer and
+release inventory reject missing or invalid values. Maturity is independent of
+the suite release channel and is never inferred from `VERSION`. The installer
+displays every plugin's declared tier.
 
-- `beta`: supported beta scope. Every supported plugin except the experiment
-  below uses this tier.
+- `stable`: proven plugin behavior within the declared host compatibility range.
+- `beta`: supported beta scope. Every currently supported plugin except the
+  experiment below uses this tier.
 - `experimental`: supported in omakase but still a proving ground. Currently:
   `lacuna.script-pill`.
 - `deprecated`: compatibility/migration only and excluded from omakase.

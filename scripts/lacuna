@@ -25,7 +25,7 @@ DEFAULT_SOURCE = "lacuna"
 OFFICIAL_SOURCE_URL = "https://github.com/OldJobobo/lacuna-shell.git"
 LEGACY_PLUGIN = "lacuna.compact-pill"
 OMAKASE_PROFILE_PATH = ROOT / "config" / "omakase-profile.json"
-ALLOWED_STABILITIES = {"beta", "experimental", "deprecated"}
+ALLOWED_STABILITIES = {"stable", "beta", "experimental", "deprecated"}
 RESET_OWNED_SETTINGS_KEYS = [
     "version",
     "designStyle",
@@ -292,7 +292,7 @@ def load_plugins() -> dict[str, Plugin]:
             allowed = ", ".join(sorted(ALLOWED_STABILITIES))
             raise SystemExit(
                 f"{manifest_path}: lacuna.stability must be explicit and one of {allowed}; "
-                f"got {stability!r}. 'stable' is reserved for a future release line."
+                f"got {stability!r}."
             )
         plugin = Plugin(
             id=data["id"],
@@ -2204,7 +2204,7 @@ def status(_args: argparse.Namespace) -> int:
     print(f"  Lacuna state: {lacuna_state_dir()}")
     print(f"  Shell config: {shell_health} ({shell_config_path()})")
     schema = settings.get("version", "unknown") if settings else "unknown"
-    print(f"  Settings migration: {settings_health} (schema {schema}, expected 1)")
+    print(f"  Settings migration: {settings_health} (schema {schema}, expected 3)")
     print(f"  Sidebar monitor policy: {policy} ({', '.join(map(str, names)) if names else 'no pinned outputs'})")
     if operation_health == "healthy" and operation:
         print(f"  Last installer operation: {operation.get('operation', 'unknown')} / {operation.get('phase', 'unknown')} / exit {operation.get('exitCode')}")

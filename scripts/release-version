@@ -15,13 +15,42 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION_FILE = ROOT / "VERSION"
 PKGBUILD = ROOT / "packaging/aur/PKGBUILD"
 SRCINFO = ROOT / "packaging/aur/.SRCINFO"
-VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:-(?:beta|rc)\.\d+)?$")
+NUMBER = r"(?:0|[1-9]\d*)"
+VERSION_RE = re.compile(
+    rf"^(?P<major>{NUMBER})\.(?P<minor>{NUMBER})\.(?P<patch>{NUMBER})"
+    rf"(?:-(?P<channel>alpha|beta|rc)\.(?P<serial>{NUMBER})(?P<dev>\.dev\.0)?)?$"
+)
+PUBLISHABLE_VERSION_RE = re.compile(
+    rf"^{NUMBER}\.{NUMBER}\.{NUMBER}(?:-(?:beta|rc)\.{NUMBER})?$"
+)
+CHANNEL_RANK = {"alpha": 0, "beta": 1, "rc": 2}
+
+
+def parsed_version(version: str) -> re.Match[str]:
+    match = VERSION_RE.fullmatch(version)
+    if match is None or (match.group("dev") and match.group("channel") not in {"beta", "rc"}):
+        raise ValueError(f"unsupported suite version: {version}")
+    return match
 
 
 def arch_version(version: str) -> str:
-    if not VERSION_RE.fullmatch(version):
-        raise ValueError(f"unsupported release version: {version}")
+    parsed_version(version)
     return version.replace("-", "")
+
+
+def is_publishable(version: str) -> bool:
+    return bool(PUBLISHABLE_VERSION_RE.fullmatch(version))
+
+
+def version_key(version: str) -> tuple[int, int, int, int, int, int]:
+    match = parsed_version(version)
+    base = tuple(int(match.group(name)) for name in ("major", "minor", "patch"))
+    channel = match.group("channel")
+    if channel is None:
+        return (*base, 3, 0, 0)
+    serial = int(match.group("serial"))
+    development_after = 1 if match.group("dev") else 0
+    return (*base, CHANNEL_RANK[channel], serial, development_after)
 
 
 def manifest_paths() -> list[Path]:

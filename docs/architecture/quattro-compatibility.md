@@ -1,6 +1,6 @@
 # Quattro Compatibility Ledger
 
-Status: reference (updated 2026-07-28)
+Status: reference
 
 This is the compatibility record for the Lacuna core bundle on Omarchy
 Quattro. It is intentionally a ledger, not a promise that every future
@@ -16,7 +16,22 @@ Omarchy development build is supported.
 | Upstream bar source | `/usr/share/omarchy/shell/plugins/bar/` |
 | Bar source revision | package revision `9b693cc` (encoded in the Omarchy package version) |
 | Reviewed commit | `9b693cca63d111fc3faba16aea149d226881b427` |
-| Target date | 2026-07-28 |
+| Baseline review date | 2026-07-28 |
+
+## Release-tested records
+
+`config/quattro-compatibility.json` is the machine-readable authority. Each
+published suite version records the exact Omarchy package and commit,
+Quickshell package, test date, and gate result. The current record is:
+
+| Suite | Omarchy | Quickshell | Tested | Result |
+| --- | --- | --- | --- | --- |
+| `0.1.0-beta.5` | `4.0.0.r1438.g9b693cc-1` / `9b693cc` | `0.3.0.r18.g10b439f-3` | 2026-08-11 | Compatibility baseline passed; destructive rehearsal remains a separate gate |
+
+Repository-only checks report `declared`, not `compatible`, because they do not
+inspect live packages, installed files, vendored parity, or plugin validation.
+A release tag requires a matching release-tested record; only a live check can
+claim compatibility.
 
 The current upstream bar source is package-managed rather than a Git checkout,
 so the package version and source hashes are the authoritative revision record

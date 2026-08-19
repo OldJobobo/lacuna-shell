@@ -52,6 +52,7 @@ nav:
       - Release notes: releases/index.md
       - Migration notes: releases/migration-notes.md
   - Develop Lacuna:
+      - Workflow: development/workflow.md
       - Contributor setup: development/setup.md
       - Testing: development/testing.md
       - Architecture overview: architecture/overview.md

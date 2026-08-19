@@ -1,0 +1,231 @@
+#!/usr/bin/env python3
+"""Validate Lacuna's suite-version, documentation, compatibility, and tag release authority."""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import importlib.machinery
+import importlib.util
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def load_release_version():
+    path = ROOT / "scripts" / "release-version"
+    loader = importlib.machinery.SourceFileLoader("lacuna_release_version", str(path))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    if spec is None:
+        raise RuntimeError("cannot load scripts/release-version")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[loader.name] = module
+    loader.exec_module(module)
+    return module
+
+
+def run_check(command: list[str], errors: list[str]) -> None:
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    if result.returncode != 0:
+        detail = result.stdout.strip()
+        errors.append(f"{' '.join(command)} failed" + (f": {detail}" if detail else ""))
+
+
+def changelog_section(changelog: str, version: str) -> str:
+    marker = f"## [{version}]"
+    start = changelog.find(marker)
+    if start < 0:
+        return ""
+    next_heading = changelog.find("\n## [", start + len(marker))
+    return changelog[start:] if next_heading < 0 else changelog[start:next_heading].rstrip() + "\n"
+
+
+def latest_published_version(changelog: str, release_version) -> str:
+    for candidate in re.findall(r"(?m)^## \[([^]]+)]", changelog):
+        if candidate != "Unreleased" and release_version.is_publishable(candidate):
+            return candidate
+    return ""
+
+
+def validate(*, publish: bool, tag: str | None, notes_output: Path | None) -> list[str]:
+    release_version = load_release_version()
+    version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    errors: list[str] = []
+
+    try:
+        release_version.arch_version(version)
+    except ValueError as error:
+        errors.append(str(error))
+        return errors
+
+    publishable = release_version.is_publishable(version)
+    if publish and not publishable:
+        errors.append(f"{version} is a development version and cannot be published")
+
+    expected_tag = f"v{version}"
+    if tag and tag != expected_tag:
+        errors.append(f"tag {tag} does not match {expected_tag}")
+
+    if publish:
+        result = subprocess.run(
+            ["git", "tag", "--list", "v*"],
+            cwd=ROOT,
+            check=False,
+            text=True,
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            errors.append(f"cannot inspect existing release tags: {result.stderr.strip()}")
+        else:
+            published = []
+            for existing_tag in result.stdout.splitlines():
+                existing = existing_tag.removeprefix("v")
+                if release_version.is_publishable(existing):
+                    published.append((release_version.version_key(existing), existing_tag))
+            if published:
+                latest_key, latest_tag = max(published)
+                candidate_key = release_version.version_key(version)
+                if candidate_key < latest_key:
+                    errors.append(f"{version} is older than existing release {latest_tag}")
+                elif candidate_key == latest_key and tag != latest_tag:
+                    errors.append(f"{version} is already published as {latest_tag}")
+
+    run_check([str(ROOT / "scripts" / "release-version"), "check"], errors)
+    run_check([str(ROOT / "scripts" / "release-inventory"), "--check"], errors)
+
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    if "## [Unreleased]" not in changelog:
+        errors.append("CHANGELOG.md is missing [Unreleased]")
+
+    section = changelog_section(changelog, version)
+    documentation_version = (
+        version if publishable else latest_published_version(changelog, release_version)
+    )
+    if not documentation_version:
+        errors.append("CHANGELOG.md has no published release section for current documentation")
+    else:
+        release_link = re.compile(
+            rf"^\[{re.escape(documentation_version)}\]:\s+https://github\.com/[^/]+/[^/]+/releases/tag/v{re.escape(documentation_version)}$",
+            re.MULTILINE,
+        )
+        if release_link.search(changelog) is None:
+            errors.append(
+                "CHANGELOG.md "
+                f"[{documentation_version}] link must target tag v{documentation_version}"
+            )
+        unreleased_link = re.compile(
+            rf"^\[Unreleased\]:\s+https://github\.com/[^/]+/[^/]+/compare/v{re.escape(documentation_version)}\.\.\.HEAD$",
+            re.MULTILINE,
+        )
+        if unreleased_link.search(changelog) is None:
+            errors.append(
+                f"CHANGELOG.md [Unreleased] link must compare v{documentation_version}...HEAD"
+            )
+        for relative in ("README.md", "docs/releases/index.md", "docs/help/known-limitations.md"):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            if documentation_version not in text:
+                errors.append(
+                    f"{relative} does not identify current release {documentation_version}"
+                )
+
+    if publishable:
+        if not section:
+            errors.append(f"CHANGELOG.md is missing a [{version}] section")
+
+        compatibility = json.loads(
+            (ROOT / "config/quattro-compatibility.json").read_text(encoding="utf-8")
+        )
+        if compatibility.get("schemaVersion") != 2:
+            errors.append("compatibility ledger schemaVersion must be 2")
+        records = compatibility.get("releaseTests", [])
+        matches = [row for row in records if row.get("suiteVersion") == version]
+        if len(matches) != 1:
+            errors.append(
+                f"compatibility ledger must contain exactly one releaseTests record for {version}"
+            )
+        else:
+            record = matches[0]
+            for key in (
+                "omarchyVersion",
+                "omarchyCommit",
+                "quickshellVersion",
+                "testedAt",
+                "result",
+            ):
+                if not record.get(key):
+                    errors.append(f"compatibility record for {version} is missing {key}")
+            if record.get("omarchyVersion") != compatibility.get("reviewedOmarchyVersion"):
+                errors.append(
+                    f"compatibility record for {version} does not match reviewed Omarchy version"
+                )
+            if record.get("omarchyCommit") != compatibility.get("reviewedOmarchyCommit"):
+                errors.append(
+                    f"compatibility record for {version} does not match reviewed Omarchy commit"
+                )
+            if record.get("quickshellVersion") != compatibility.get("reviewedQuickshellVersion"):
+                errors.append(
+                    f"compatibility record for {version} does not match reviewed Quickshell version"
+                )
+            if record.get("result") != "passed":
+                errors.append(f"compatibility record for {version} must have result 'passed'")
+            try:
+                dt.date.fromisoformat(str(record.get("testedAt", "")))
+            except ValueError:
+                errors.append(f"compatibility record for {version} has an invalid testedAt date")
+
+    if notes_output is not None:
+        if not section:
+            errors.append(f"cannot write release notes without changelog section {version}")
+        elif not errors:
+            notes_output.parent.mkdir(parents=True, exist_ok=True)
+            notes_output.write_text(section, encoding="utf-8")
+
+    return errors
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--publish",
+        action="store_true",
+        help="Require a publishable beta, RC, stable, or patch version.",
+    )
+    parser.add_argument(
+        "--tag",
+        help="Require this tag to equal v$VERSION. Defaults to GITHUB_REF_NAME when present.",
+    )
+    parser.add_argument(
+        "--notes-output",
+        type=Path,
+        help="Write the matching changelog section for release publication.",
+    )
+    args = parser.parse_args()
+    tag = args.tag
+    if tag is None and os.environ.get("GITHUB_REF_TYPE") == "tag":
+        tag = os.environ.get("GITHUB_REF_NAME")
+    errors = validate(publish=args.publish, tag=tag, notes_output=args.notes_output)
+    if errors:
+        print("Release authority check failed:", file=sys.stderr)
+        for error in errors:
+            print(f"  - {error}", file=sys.stderr)
+        return 1
+    version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    channel = "publishable" if load_release_version().is_publishable(version) else "development"
+    print(f"Release authority: {version} ({channel})")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

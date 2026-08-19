@@ -122,13 +122,21 @@ def report(repo_only: bool) -> dict:
         if data["exists"] and reviewed_hashes.get(name) != data["sha256"]
     ]
     validation_failed = [plugin_id for plugin_id, state in validation.items() if state == "fail"]
-    if missing or parity is False or validation_failed:
+    host_review_required = []
+    if not repo_only:
+        if omarchy_version != "unknown" and omarchy_version != review.get("reviewedOmarchyVersion"):
+            host_review_required.append("Omarchy")
+        if quickshell_version != "unknown" and quickshell_version != review.get("reviewedQuickshellVersion"):
+            host_review_required.append("Quickshell")
+    if repo_only:
+        status = "declared"
+    elif missing or parity is False or validation_failed:
         status = "incompatible"
-    elif changed:
+    elif changed or host_review_required:
         status = "review-required"
-    elif not repo_only and (omarchy_version == "unknown" or quickshell_version == "unknown" or parity is None):
+    elif omarchy_version == "unknown" or quickshell_version == "unknown" or parity is None:
         status = "unknown"
-    elif not repo_only and not omarchy_version.startswith("4."):
+    elif not omarchy_version.startswith("4."):
         status = "incompatible"
     else:
         status = "compatible"
@@ -141,8 +149,11 @@ def report(repo_only: bool) -> dict:
         "barSourceRevision": omarchy_version if omarchy_version != "unknown" else "unknown",
         "reviewedOmarchyVersion": review.get("reviewedOmarchyVersion", "unknown"),
         "reviewedOmarchyCommit": review.get("reviewedOmarchyCommit", "unknown"),
+        "reviewedQuickshellVersion": review.get("reviewedQuickshellVersion", "unknown"),
+        "releaseTests": review.get("releaseTests", []),
         "upstreamBarFiles": upstream_files,
         "upstreamReviewRequired": changed,
+        "hostVersionReviewRequired": host_review_required,
         "vendoredParity": parity,
         "corePluginValidation": validation,
     }
@@ -164,11 +175,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  Quickshell: {result['quickshellVersion']}")
         print(f"  Vendored parity: {result['vendoredParity']}")
         if result["upstreamReviewRequired"]:
-            print(f"  Review required: {', '.join(result['upstreamReviewRequired'])}")
+            print(f"  Source review required: {', '.join(result['upstreamReviewRequired'])}")
+        if result["hostVersionReviewRequired"]:
+            print(f"  Host-version review required: {', '.join(result['hostVersionReviewRequired'])}")
         for plugin_id, state in result["corePluginValidation"].items():
             print(f"  {plugin_id}: {state}")
 
-    return 0 if not args.check or result["status"] == "compatible" else 1
+    checkable_statuses = {"compatible", "declared"} if args.repo_only else {"compatible"}
+    return 0 if not args.check or result["status"] in checkable_statuses else 1
 
 
 if __name__ == "__main__":

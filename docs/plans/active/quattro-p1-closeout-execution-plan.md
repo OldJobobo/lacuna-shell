@@ -78,10 +78,11 @@ No P1 workstream is complete by this checkpoint.
    provider configuration, favorites, queue/history, auth/reminder files,
    preferred/custom apps, unrelated Omarchy state, other bar keys, and unknown
    JSON-safe fields are preserved.
-4. **Stability vocabulary:** exactly `beta`, `experimental`, and `deprecated`
-   are valid for this beta line. Supported manifests are `beta` except
-   `lacuna.script-pill=experimental`; `lacuna.compact-pill=deprecated`.
-   `stable` is reserved, neither accepted nor inferred.
+4. **Stability vocabulary:** exactly `stable`, `beta`, `experimental`, and
+   `deprecated` are valid maturity values. Current supported manifests remain
+   `beta` except `lacuna.script-pill=experimental` and
+   `lacuna.compact-pill=deprecated`; maturity is independent of the suite
+   channel and is never inferred.
 5. **Rehearsal target:** destructive release rehearsal is approved only on the
    current user/machine after automatic backups, verified restoration
    capability, and a fresh explicit confirmation immediately before destructive
