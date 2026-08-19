@@ -33,6 +33,12 @@ inspect live packages, installed files, vendored parity, or plugin validation.
 A release tag requires a matching release-tested record; only a live check can
 claim compatibility.
 
+`vendoredOmarchyCommit` separately pins the Omarchy checkout used by CI and
+release workflows to verify copied source such as `BarModel.js`. Advancing that
+pin does not advance `reviewedOmarchyCommit` or claim host compatibility; host
+acceptance still requires updated source hashes, live evidence, and a passed
+release-test record.
+
 The current upstream bar source is package-managed rather than a Git checkout,
 so the package version and source hashes are the authoritative revision record
 on this machine:
@@ -44,8 +50,9 @@ on this machine:
 | `shell/Ui/BarWidget.qml` | `8be00e2553a486b3dbfcb4f99de976035f323c4061b993dbc1842c75ff8b9022` |
 | `shell/shell.qml` | `80bc9dd4ed7dfdc8290a93fa535471dd3a5ad510ce8317a6c05b502c3eb045ca` |
 
-`lacuna.bar/BarModel.js` matches the upstream `BarModel.js`. The copied
-`lacuna.bar/OmarchyBar.qml` is intentionally Lacuna-owned and diverges from
+`lacuna.bar/BarModel.js` matches `BarModel.js` at the separately pinned
+`vendoredOmarchyCommit`. The copied `lacuna.bar/OmarchyBar.qml` is intentionally
+Lacuna-owned and diverges from
 the upstream `Bar.qml`; that divergence is declared in
 `lacuna.bar/manifest.json` and must not be silently synchronized.
 
