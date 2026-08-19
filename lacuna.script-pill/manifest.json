@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.script-pill",
   "name": "Lacuna Script Pill",
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.5.dev.0",
   "author": "Lacuna",
   "description": "Lacuna-styled top-bar widget for script-backed status text.",
   "kinds": [

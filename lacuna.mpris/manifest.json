@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.mpris",
   "name": "Lacuna MPRIS",
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.5.dev.0",
   "author": "Lacuna",
   "description": "Original Lacuna-styled MPRIS media pill with sweeping playback text.",
   "kinds": [

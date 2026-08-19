@@ -1,6 +1,6 @@
 pkgbase = lacuna-shell
 	pkgdesc = Cohesive Lacuna desktop plugins for the Omarchy shell
-	pkgver = 0.1.0beta.5
+	pkgver = 0.1.0beta.5.dev.0
 	pkgrel = 1
 	url = https://github.com/OldJobobo/lacuna-shell
 	arch = any
@@ -12,7 +12,7 @@ pkgbase = lacuna-shell
 	optdepends = mpv: media-player playback
 	optdepends = yt-dlp: YouTube media search and playback
 	optdepends = imagemagick: adaptive desktop-clock contrast sampling
-	source = lacuna-shell-0.1.0-beta.5.tar.gz::https://github.com/OldJobobo/lacuna-shell/releases/download/v0.1.0-beta.5/lacuna-shell-0.1.0-beta.5.tar.gz
-	sha256sums = b469fd3042dc9e182c096b5d3daedcec09fd18951437b4cb559ee0581450b742
+	source = lacuna-shell-0.1.0-beta.5.dev.0.tar.gz::https://github.com/OldJobobo/lacuna-shell/releases/download/v0.1.0-beta.5.dev.0/lacuna-shell-0.1.0-beta.5.dev.0.tar.gz
+	sha256sums = SKIP
 
 pkgname = lacuna-shell

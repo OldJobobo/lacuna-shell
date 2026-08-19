@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "lacuna.crt-overlay",
   "name": "Lacuna CRT Overlay",
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.5.dev.0",
   "author": "Lacuna",
   "description": "Subtle CRT scanlines with a slow broad static band for animated wallpaper ambience.",
   "kinds": [
