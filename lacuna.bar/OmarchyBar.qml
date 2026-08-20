@@ -8,6 +8,7 @@ import qs.Ui
 import "BarModel.js" as BarModel
 import "BarResponsiveModel.js" as BarResponsiveModel
 import "PanelIndicatorModel.js" as PanelIndicatorModel
+import "PanelNavigationModel.js" as PanelNavigationModel
 import "PortraitBarModel.js" as PortraitBarModel
 import "ScreenModel.js" as ScreenModel
 
@@ -503,23 +504,19 @@ Item {
   }
 
   function panelNavigationSlots(region, screenNameValue, bandValue) {
-    var entries = layoutEntries(region)
-    var slots = []
-    for (var i = 0; i < entries.length; i++) {
-      var id = entryId(entries[i])
-      for (var j = 0; j < debugModuleSlots.length; j++) {
-        var slot = debugModuleSlots[j]
-        if (!slot || slot.region !== region || slot.moduleName !== id) continue
-        if (screenNameValue && slot.surfaceScreenName !== screenNameValue) continue
-        if (bandValue && slot.band !== bandValue) continue
-        var item = slot.activeItem
-        if (!item || item.visible !== true || slot.visible !== true || slot.width <= 0 || slot.height <= 0) continue
-        if (typeof item.open !== "function" || typeof item.close !== "function" || item.opened === undefined) continue
-        slots.push(slot)
-        break
-      }
-    }
-    return slots
+    return PanelNavigationModel.panelNavigationSlots(
+      layoutEntries(region), debugModuleSlots, String(region || ""),
+      String(screenNameValue || ""), String(bandValue || ""))
+  }
+
+  // Omarchy 4.0's shell routes positional panel hotkeys through the active bar.
+  // Count only panel-capable slots that Lacuna actually draws, in shell.json
+  // layout order. Any visible responsive/portrait copy is sufficient because
+  // the returned id is opened through the bar's normal multi-output routing.
+  function panelWidgetIdAt(region, index) {
+    return PanelNavigationModel.panelWidgetIdAt(
+      layoutEntries(String(region || "")), debugModuleSlots,
+      String(region || ""), index)
   }
 
   function switchPanelFrom(owner, direction) {

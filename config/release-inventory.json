@@ -173,6 +173,7 @@
         "OmarchyBar.qml",
         "OmarchyBarAdapter.qml",
         "PanelIndicatorModel.js",
+        "PanelNavigationModel.js",
         "PortraitBarModel.js",
         "ScreenModel.js",
         "manifest.json"

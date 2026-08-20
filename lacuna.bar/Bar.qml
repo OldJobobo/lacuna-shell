@@ -449,6 +449,10 @@ Item {
     return omarchyBar.isBarWidgetOpen(pluginId)
   }
 
+  function panelWidgetIdAt(region, index) {
+    return omarchyBar.panelWidgetIdAt(region, index)
+  }
+
   function openMenu(payloadJson) {
     hostedMenu.open(payloadJson || "{}")
     return true
